@@ -14,12 +14,12 @@ class LinearAttempt(models.Model):
     lambda2_initial = models.DecimalField(max_digits=15, decimal_places=8, help_text="Initial λ2")
     
     # Final parameters (6 parameters of the Svensson model after estimation)
-    beta0_final = models.DecimalField(max_digits=15, decimal_places=8, help_text="Final β0")
-    beta1_final = models.DecimalField(max_digits=15, decimal_places=8, help_text="Final β1")
-    beta2_final = models.DecimalField(max_digits=15, decimal_places=8, help_text="Final β2")
-    beta3_final = models.DecimalField(max_digits=15, decimal_places=8, help_text="Final β3")
-    lambda1_final = models.DecimalField(max_digits=15, decimal_places=8, help_text="Final λ1")
-    lambda2_final = models.DecimalField(max_digits=15, decimal_places=8, help_text="Final λ2")
+    beta0_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Final β0")
+    beta1_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Final β1")
+    beta2_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Final β2")
+    beta3_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Final β3")
+    lambda1_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Final λ1")
+    lambda2_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Final λ2")
     
     # Observation field
     observation = models.TextField(blank=True, help_text="Notes about this estimation attempt")
