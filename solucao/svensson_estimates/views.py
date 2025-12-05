@@ -12,7 +12,7 @@ from django.views.decorators.http import require_http_methods
 from rates.models import B3Rate
 from .models import LinearAttempt
 from .optimizers import OptimizationResult, optimize_parameters
-from .utils import calculate_objective_function
+from .utils import calculate_objective_function, calculate_calendar_days
 
 
 def homepage(request):
@@ -307,7 +307,7 @@ def get_svensson_curve(request, attempt_id):
             y = term1 + term2 + term3 + term4
             
             curve_data.append({
-                'dias_corridos': t,
+                'dias_corridos': calculate_calendar_days(attempt.date, t),
                 'taxa': round(y, 6)
             })
         except (ZeroDivisionError, OverflowError):
