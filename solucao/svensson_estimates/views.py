@@ -81,6 +81,8 @@ def list_attempts(request):
             'mae_final': float(attempt.mae_final) if attempt.mae_final else None,
             'r2_initial': float(attempt.r2_initial) if attempt.r2_initial else None,
             'r2_final': float(attempt.r2_final) if attempt.r2_final else None,
+            'objective_function_initial': float(attempt.objective_function_initial) if attempt.objective_function_initial else None,
+            'objective_function_final': float(attempt.objective_function_final) if attempt.objective_function_final else None,
             'observation': attempt.observation,
             'created_at': attempt.created_at.isoformat(),
         })

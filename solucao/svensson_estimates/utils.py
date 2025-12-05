@@ -319,3 +319,66 @@ def calculate_r2(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
     except Exception as e:
         print(f"Error calculating R²: {e}")
         return None
+
+def calculate_objective_function(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
+    """
+    Calculate the objective function:
+        objective_function = sum( (1/consecutive_days) * (price_error)^2 )
+
+    Where:
+        price_error = real_price - calculated_price
+        consecutive_days = rate.dias_corridos (consecutive days)
+    """
+    try:
+        b3_rates = B3Rate.objects.filter(date=date).order_by('dias_corridos')
+
+        if not b3_rates.exists():
+            return None
+
+        total = 0.0
+        used_points = 0
+
+        for rate in b3_rates:
+            # Evitar divisão por zero ou pesos inválidos
+            if not rate.dias_corridos or rate.dias_corridos <= 0:
+                continue
+
+            business_days = calculate_business_days(date, rate.dias_corridos)
+            periodos_de_anos_de_252_dias = business_days / 252.0
+
+            if periodos_de_anos_de_252_dias <= 0:
+                continue
+
+            # Preço "real" (B3)
+            tx_anual_B3_252 = float(rate.di_pre_252) / 100.0
+            real_price = 1.0 / ((1.0 + tx_anual_B3_252) ** periodos_de_anos_de_252_dias)
+
+            tau = periodos_de_anos_de_252_dias
+
+            try:
+                # Svensson
+                term1 = beta0
+                term2 = beta1 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
+                term3 = beta2 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
+                term4 = beta3 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+
+                tx_anual_calculada = term1 + term2 + term3 + term4
+                calculated_price = 1.0 / ((1.0 + tx_anual_calculada) ** periodos_de_anos_de_252_dias)
+
+                price_error = real_price - calculated_price
+
+                weight = 1.0 / float(rate.dias_corridos)
+                total += weight * (price_error ** 2)
+                used_points += 1
+
+            except (ZeroDivisionError, OverflowError, ValueError):
+                continue
+
+        if used_points == 0:
+            return None
+
+        return Decimal(str(total))
+
+    except Exception as e:
+        print(f"Error calculating função_objetivo: {e}")
+        return None

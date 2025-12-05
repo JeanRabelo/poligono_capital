@@ -954,7 +954,11 @@
             const r2 = attempt.r2_final !== null ? attempt.r2_final : attempt.r2_initial;
             const r2Type = attempt.r2_final !== null ? 'Final' : 'Inicial';
             
-            if (rmse === null && mae === null && r2 === null) {
+            // Determine which Objective Function to display (prefer final if available)
+            const objFunc = attempt.objective_function_final !== null ? attempt.objective_function_final : attempt.objective_function_initial;
+            const objFuncType = attempt.objective_function_final !== null ? 'Final' : 'Inicial';
+            
+            if (rmse === null && mae === null && r2 === null && objFunc === null) {
                 metricsContainer.innerHTML = '<div class="no-metrics">Métricas não disponíveis</div>';
                 return;
             }
@@ -967,6 +971,9 @@
             
             // Format R² (typically between 0 and 1, can be negative for poor fits)
             const r2Formatted = r2 !== null ? r2.toFixed(6) : 'N/A';
+            
+            // Format Objective Function with scientific notation if very small
+            const objFuncFormatted = objFunc !== null ? (objFunc < 0.0001 ? objFunc.toExponential(4) : objFunc.toFixed(6)) : 'N/A';
             
             metricsContainer.innerHTML = `
                 <div class="error-metrics-content">
@@ -990,6 +997,13 @@
                             <span class="tooltip">R² = 1 − (SSᵣₑₛ / SSₜₒₜ)</span>
                         </div>
                         <div class="error-metric-value">${r2Formatted}</div>
+                    </div>
+                    <div class="error-metric-item">
+                        <div class="error-metric-label">
+                            Objective Function (${objFuncType})
+                            <span class="tooltip">Obj = ∑ᵢ (¹⁄dᵢ) eᵢ²</span>
+                        </div>
+                        <div class="error-metric-value">${objFuncFormatted}</div>
                     </div>
                 </div>
             `;

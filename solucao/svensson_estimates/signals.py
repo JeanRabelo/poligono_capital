@@ -58,12 +58,12 @@ def populate_feriados(sender, **kwargs):
 @receiver(post_save, sender='svensson_estimates.LinearAttempt')
 def calculate_rmse_on_save(sender, instance, created, **kwargs):
     """
-    Automatically calculate RMSE, MAE, and R² values when a LinearAttempt is created or updated.
-    Calculates rmse_initial, mae_initial, and r2_initial for initial parameters.
-    Calculates rmse_final, mae_final, and r2_final for final parameters.
+    Automatically calculate RMSE, MAE, R², and Objective Function values when a LinearAttempt is created or updated.
+    Calculates rmse_initial, mae_initial, r2_initial, and objective_function_initial for initial parameters.
+    Calculates rmse_final, mae_final, r2_final, and objective_function_final for final parameters.
     """
     from .models import LinearAttempt
-    from .utils import calculate_rmse, calculate_mae, calculate_r2
+    from .utils import calculate_rmse, calculate_mae, calculate_r2, calculate_objective_function
     
     # Flag to check if we need to update
     needs_update = False
@@ -113,7 +113,22 @@ def calculate_rmse_on_save(sender, instance, created, **kwargs):
         instance.r2_initial = r2_initial
         needs_update = True
     
-    # Calculate RMSE, MAE, and R² for final parameters if they exist
+    # Calculate Objective Function for initial parameters
+    objective_function_initial = calculate_objective_function(
+        instance.date,
+        float(instance.beta0_initial),
+        float(instance.beta1_initial),
+        float(instance.beta2_initial),
+        float(instance.beta3_initial),
+        float(instance.lambda1_initial),
+        float(instance.lambda2_initial)
+    )
+    
+    if objective_function_initial is not None and instance.objective_function_initial != objective_function_initial:
+        instance.objective_function_initial = objective_function_initial
+        needs_update = True
+    
+    # Calculate RMSE, MAE, R², and Objective Function for final parameters if they exist
     has_final = (
         instance.beta0_final is not None and instance.beta1_final is not None and 
         instance.beta2_final is not None and instance.beta3_final is not None and 
@@ -162,8 +177,22 @@ def calculate_rmse_on_save(sender, instance, created, **kwargs):
         if r2_final is not None and instance.r2_final != r2_final:
             instance.r2_final = r2_final
             needs_update = True
+        
+        objective_function_final = calculate_objective_function(
+            instance.date,
+            float(instance.beta0_final),
+            float(instance.beta1_final),
+            float(instance.beta2_final),
+            float(instance.beta3_final),
+            float(instance.lambda1_final),
+            float(instance.lambda2_final)
+        )
+        
+        if objective_function_final is not None and instance.objective_function_final != objective_function_final:
+            instance.objective_function_final = objective_function_final
+            needs_update = True
     else:
-        # Clear rmse_final, mae_final, and r2_final if final parameters are not complete
+        # Clear rmse_final, mae_final, r2_final, and objective_function_final if final parameters are not complete
         if instance.rmse_final is not None:
             instance.rmse_final = None
             needs_update = True
@@ -173,10 +202,13 @@ def calculate_rmse_on_save(sender, instance, created, **kwargs):
         if instance.r2_final is not None:
             instance.r2_final = None
             needs_update = True
+        if instance.objective_function_final is not None:
+            instance.objective_function_final = None
+            needs_update = True
     
-    # Save only if we calculated new RMSE, MAE, or R² values
+    # Save only if we calculated new RMSE, MAE, R², or Objective Function values
     # Avoid infinite recursion by disconnecting the signal temporarily
     if needs_update:
         post_save.disconnect(calculate_rmse_on_save, sender=LinearAttempt)
-        instance.save(update_fields=['rmse_initial', 'rmse_final', 'mae_initial', 'mae_final', 'r2_initial', 'r2_final'])
+        instance.save(update_fields=['rmse_initial', 'rmse_final', 'mae_initial', 'mae_final', 'r2_initial', 'r2_final', 'objective_function_initial', 'objective_function_final'])
         post_save.connect(calculate_rmse_on_save, sender=LinearAttempt)
