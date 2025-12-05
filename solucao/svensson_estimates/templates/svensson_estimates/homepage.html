@@ -633,6 +633,9 @@
                         <div class="chart-info">
                             💡 Arraste para selecionar área e dar zoom | Scroll para zoom rápido | Ctrl+arraste para mover
                         </div>
+                        <button id="toggleXAxisButton" class="btn-reset-zoom" onclick="toggleXAxis()">
+                            Eixo X: Dias Corridos
+                        </button>
                         <button class="btn-reset-zoom" onclick="resetZoom()">
                             🔄 Resetar Zoom
                         </button>
@@ -710,6 +713,8 @@
         let selectedAttemptId = null;
         let editingAttemptId = null;
         let attemptsData = [];
+        let xAxisMode = 'corridos'; // 'corridos' | 'uteis'
+        let lastSvenssonData = null;
         
         function toggleImproveButton() {
             const improveBtn = document.getElementById('improveButton');
@@ -725,15 +730,26 @@
         }
         
         function renderChart(svenssonData = null) {
+            if (svenssonData !== null) {
+                lastSvenssonData = svenssonData;
+            } else if (lastSvenssonData) {
+                svenssonData = lastSvenssonData;
+            }
             {% if rates_data %}
             const ctx = document.getElementById('ratesChart').getContext('2d');
+            const isDiasUteis = xAxisMode === 'uteis';
+            const xLabel = isDiasUteis ? 'Dias Úteis' : 'Dias Corridos';
             
             // Prepare data from Django template - using x/y coordinate pairs
-            const diPre252Data = [
+            const diPre252Source = [
                 {% for rate in rates_data %}
-                {x: {{ rate.dias_corridos }}, y: {{ rate.di_pre_252 }}}{% if not forloop.last %},{% endif %}
+                {dias_corridos: {{ rate.dias_corridos }}, dias_uteis: {{ rate.dias_uteis }}, di_pre_252: {{ rate.di_pre_252 }}}{% if not forloop.last %},{% endif %}
                 {% endfor %}
             ];
+            const diPre252Data = diPre252Source.map(point => ({
+                x: isDiasUteis ? point.dias_uteis : point.dias_corridos,
+                y: point.di_pre_252
+            }));
             
             // Prepare datasets
             const datasets = [
@@ -763,7 +779,10 @@
                 
                 datasets.push({
                     label: curveLabel,
-                    data: svenssonData.curve.map(point => ({x: point.dias_corridos, y: point.taxa * 100.0})),
+                    data: svenssonData.curve.map(point => ({
+                        x: isDiasUteis ? point.dias_uteis : point.dias_corridos,
+                        y: point.taxa * 100.0
+                    })),
                     borderColor: curveColor,
                     backgroundColor: 'transparent',
                     borderWidth: 3,
@@ -811,7 +830,7 @@
                             borderWidth: 1,
                             callbacks: {
                                 title: function(context) {
-                                    return 'Dias Corridos: ' + context[0].label;
+                                    return xLabel + ': ' + context[0].parsed.x;
                                 },
                                 label: function(context) {
                                     return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
@@ -850,7 +869,7 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Dias Corridos',
+                                text: xLabel,
                                 font: {
                                     size: 14,
                                     weight: 'bold'
@@ -904,6 +923,21 @@
             if (myChart) {
                 myChart.resetZoom();
             }
+        }
+        
+        function updateXAxisToggleButton() {
+            const toggleBtn = document.getElementById('toggleXAxisButton');
+            if (!toggleBtn) return;
+            toggleBtn.textContent = xAxisMode === 'uteis' ? 'Eixo X: Dias Úteis' : 'Eixo X: Dias Corridos';
+        }
+        
+        function toggleXAxis() {
+            xAxisMode = xAxisMode === 'corridos' ? 'uteis' : 'corridos';
+            updateXAxisToggleButton();
+            if (myChart) {
+                myChart.destroy();
+            }
+            renderChart();
         }
         
         // Load attempts for the current date
@@ -1232,6 +1266,7 @@
         
         // Render chart on page load
         document.addEventListener('DOMContentLoaded', function() {
+            updateXAxisToggleButton();
             renderChart();
             if (currentDate) {
                 loadAttempts();
