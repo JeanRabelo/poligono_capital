@@ -73,6 +73,67 @@ def calculate_business_days(initial_date, consecutive_days):
     return business_days_count
 
 
+def calculate_calendar_days(initial_date, business_days):
+    """
+    Calculate how many calendar days are needed to reach a target count of
+    business days after a start date.
+
+    This walks forward from the day after initial_date, counting only weekdays
+    that are not Brazilian holidays (Feriados). The function returns the number
+    of calendar days advanced once `business_days` business days have been
+    counted. The initial_date is excluded; the final business day is included.
+
+    Args:
+        initial_date (date): Starting date (excluded from count)
+        business_days (int): Number of business days to accumulate
+
+    Returns:
+        int: Calendar days advanced to include the final business day.
+             Returns 0 when business_days <= 0.
+    """
+    if business_days <= 0:
+        return 0
+
+    # Start from the day after the initial_date
+    current_date = initial_date
+    calendar_days = 0
+    remaining_business_days = business_days
+
+    # Initial window guess to reduce queries (weekends/holidays handled by loop)
+    window_size = max(1, business_days * 2)
+    final_date = initial_date + timedelta(days=window_size)
+    holiday_dates = set(
+        Feriados.objects.filter(
+            date__gt=initial_date,
+            date__lte=final_date
+        ).values_list('date', flat=True)
+    )
+
+    while remaining_business_days > 0:
+        current_date += timedelta(days=1)
+        calendar_days += 1
+
+        # Extend the holiday cache window if we step past it
+        if current_date > final_date:
+            extend_by = max(5, remaining_business_days * 2)
+            new_final = final_date + timedelta(days=extend_by)
+            holiday_dates.update(
+                Feriados.objects.filter(
+                    date__gt=final_date,
+                    date__lte=new_final
+                ).values_list('date', flat=True)
+            )
+            final_date = new_final
+
+        is_weekend = current_date.weekday() in (5, 6)
+        is_holiday = current_date in holiday_dates
+
+        if not is_weekend and not is_holiday:
+            remaining_business_days -= 1
+
+    return calendar_days
+
+
 def calculate_rmse(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
     """
     Calculate RMSE (Root Mean Square Error) for Svensson model parameters.
