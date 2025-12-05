@@ -1,6 +1,19 @@
 from django.db import models
 
 
+class Feriados(models.Model):
+    """Model to store Brazilian holiday dates."""
+    date = models.DateField(unique=True, help_text="Holiday date")
+    
+    class Meta:
+        ordering = ['date']
+        verbose_name = "Feriado"
+        verbose_name_plural = "Feriados"
+    
+    def __str__(self):
+        return f"Feriado: {self.date.strftime('%d/%m/%Y')}"
+
+
 class LinearAttempt(models.Model):
     """Model to store linear attempts for Svensson parameter estimation."""
     date = models.DateField(help_text="Date associated with this estimation attempt")

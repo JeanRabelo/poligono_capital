@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import LinearAttempt
+from .models import LinearAttempt, Feriados
+
+
+@admin.register(Feriados)
+class FeriadosAdmin(admin.ModelAdmin):
+    list_display = ('date',)
+    list_filter = ('date',)
+    search_fields = ('date',)
+    date_hierarchy = 'date'
 
 
 @admin.register(LinearAttempt)

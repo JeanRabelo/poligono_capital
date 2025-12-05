@@ -5,3 +5,7 @@ class SvenssonEstimatesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'svensson_estimates'
     verbose_name = 'Svensson Estimates'
+    
+    def ready(self):
+        """Import signals when app is ready."""
+        from . import signals
