@@ -75,6 +75,8 @@ def list_attempts(request):
             'beta3_final': float(attempt.beta3_final) if attempt.beta3_final else None,
             'lambda1_final': float(attempt.lambda1_final) if attempt.lambda1_final else None,
             'lambda2_final': float(attempt.lambda2_final) if attempt.lambda2_final else None,
+            'rmse_initial': float(attempt.rmse_initial) if attempt.rmse_initial else None,
+            'rmse_final': float(attempt.rmse_final) if attempt.rmse_final else None,
             'observation': attempt.observation,
             'created_at': attempt.created_at.isoformat(),
         })

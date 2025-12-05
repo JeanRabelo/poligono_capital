@@ -34,6 +34,10 @@ class LinearAttempt(models.Model):
     lambda1_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Final λ1")
     lambda2_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Final λ2")
     
+    # Error metrics
+    rmse_initial = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="RMSE for initial parameters")
+    rmse_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="RMSE for final parameters")
+    
     # Observation field
     observation = models.TextField(blank=True, help_text="Notes about this estimation attempt")
     

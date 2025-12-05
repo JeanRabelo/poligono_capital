@@ -1,7 +1,7 @@
 import csv
 import os
 from datetime import datetime
-from django.db.models.signals import post_migrate
+from django.db.models.signals import post_migrate, post_save
 from django.dispatch import receiver
 from django.apps import apps
 
@@ -53,3 +53,65 @@ def populate_feriados(sender, **kwargs):
                     print(f'Warning: Skipping invalid date: {date_str} - {e}')
     
     print(f'Successfully populated {created_count} holiday dates')
+
+
+@receiver(post_save, sender='svensson_estimates.LinearAttempt')
+def calculate_rmse_on_save(sender, instance, created, **kwargs):
+    """
+    Automatically calculate RMSE values when a LinearAttempt is created or updated.
+    Calculates rmse_initial for initial parameters and rmse_final for final parameters.
+    """
+    from .models import LinearAttempt
+    from .utils import calculate_rmse
+    
+    # Flag to check if we need to update
+    needs_update = False
+    
+    # Calculate RMSE for initial parameters
+    rmse_initial = calculate_rmse(
+        instance.date,
+        float(instance.beta0_initial),
+        float(instance.beta1_initial),
+        float(instance.beta2_initial),
+        float(instance.beta3_initial),
+        float(instance.lambda1_initial),
+        float(instance.lambda2_initial)
+    )
+    
+    if rmse_initial is not None and instance.rmse_initial != rmse_initial:
+        instance.rmse_initial = rmse_initial
+        needs_update = True
+    
+    # Calculate RMSE for final parameters if they exist
+    has_final = (
+        instance.beta0_final is not None and instance.beta1_final is not None and 
+        instance.beta2_final is not None and instance.beta3_final is not None and 
+        instance.lambda1_final is not None and instance.lambda2_final is not None
+    )
+    
+    if has_final:
+        rmse_final = calculate_rmse(
+            instance.date,
+            float(instance.beta0_final),
+            float(instance.beta1_final),
+            float(instance.beta2_final),
+            float(instance.beta3_final),
+            float(instance.lambda1_final),
+            float(instance.lambda2_final)
+        )
+        
+        if rmse_final is not None and instance.rmse_final != rmse_final:
+            instance.rmse_final = rmse_final
+            needs_update = True
+    else:
+        # Clear rmse_final if final parameters are not complete
+        if instance.rmse_final is not None:
+            instance.rmse_final = None
+            needs_update = True
+    
+    # Save only if we calculated new RMSE values
+    # Avoid infinite recursion by disconnecting the signal temporarily
+    if needs_update:
+        post_save.disconnect(calculate_rmse_on_save, sender=LinearAttempt)
+        instance.save(update_fields=['rmse_initial', 'rmse_final'])
+        post_save.connect(calculate_rmse_on_save, sender=LinearAttempt)

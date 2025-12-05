@@ -213,12 +213,26 @@
             color: #999;
         }
         
+        .sections-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
         .crud-section {
             background: #f8f9fa;
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 20px;
             border: 2px solid #e9ecef;
+            flex: 1;
+        }
+        
+        .error-metrics-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            min-width: 300px;
         }
         
         .crud-header {
@@ -345,6 +359,40 @@
         .attempt-actions {
             display: flex;
             gap: 5px;
+        }
+        
+        .error-metrics-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .error-metric-item {
+            margin-bottom: 10px;
+        }
+        
+        .error-metric-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .error-metric-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .error-metric-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .no-metrics {
+            text-align: center;
+            color: #999;
+            padding: 30px 15px;
+            font-size: 0.95rem;
         }
         
         .modal {
@@ -503,14 +551,27 @@
             
             <div class="card chart-card">
                 {% if rates_data %}
-                    <!-- CRUD Section for LinearAttempt -->
-                    <div class="crud-section">
-                        <div class="crud-header">
-                            <h3>📝 Tentativas Lineares</h3>
-                            <button class="btn btn-primary" onclick="openCreateModal()">➕ Nova Tentativa</button>
+                    <!-- CRUD Section and Error Metrics -->
+                    <div class="sections-container">
+                        <div class="crud-section">
+                            <div class="crud-header">
+                                <h3>📝 Tentativas Lineares</h3>
+                                <button class="btn btn-primary" onclick="openCreateModal()">➕ Nova Tentativa</button>
+                            </div>
+                            <div class="attempts-list" id="attemptsList">
+                                <div class="no-attempts">Carregando...</div>
+                            </div>
                         </div>
-                        <div class="attempts-list" id="attemptsList">
-                            <div class="no-attempts">Carregando...</div>
+                        
+                        <div class="error-metrics-section">
+                            <div class="crud-header">
+                                <h3>📊 Error Metrics</h3>
+                            </div>
+                            <div id="errorMetricsContent">
+                                <div class="no-metrics">
+                                    Nenhuma tentativa selecionada
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -594,6 +655,7 @@
         let currentDate = {% if selected_date %}'{{ selected_date|date:'Y-m-d' }}'{% else %}null{% endif %};
         let selectedAttemptId = null;
         let editingAttemptId = null;
+        let attemptsData = [];
         
         function renderChart(svenssonData = null) {
             {% if rates_data %}
@@ -785,6 +847,9 @@
                 const response = await fetch(`/svensson/api/attempts/?date=${currentDate}`);
                 const data = await response.json();
                 
+                // Store attempts data globally
+                attemptsData = data.attempts || [];
+                
                 const listContainer = document.getElementById('attemptsList');
                 
                 if (data.attempts && data.attempts.length > 0) {
@@ -823,10 +888,52 @@
             }
         }
         
+        // Update error metrics display
+        function updateErrorMetrics(attemptId) {
+            const metricsContainer = document.getElementById('errorMetricsContent');
+            
+            if (!attemptId) {
+                metricsContainer.innerHTML = '<div class="no-metrics">Nenhuma tentativa selecionada</div>';
+                return;
+            }
+            
+            // Find the attempt in the stored data
+            const attempt = attemptsData.find(a => a.id === attemptId);
+            
+            if (!attempt) {
+                metricsContainer.innerHTML = '<div class="no-metrics">Erro ao carregar métricas</div>';
+                return;
+            }
+            
+            // Determine which RMSE to display (prefer final if available)
+            const rmse = attempt.rmse_final !== null ? attempt.rmse_final : attempt.rmse_initial;
+            const rmseType = attempt.rmse_final !== null ? 'Final' : 'Inicial';
+            
+            if (rmse === null) {
+                metricsContainer.innerHTML = '<div class="no-metrics">RMSE não disponível</div>';
+                return;
+            }
+            
+            // Format RMSE with scientific notation if very small
+            const rmseFormatted = rmse < 0.0001 ? rmse.toExponential(4) : rmse.toFixed(6);
+            
+            metricsContainer.innerHTML = `
+                <div class="error-metrics-content">
+                    <div class="error-metric-item">
+                        <div class="error-metric-label">RMSE (${rmseType})</div>
+                        <div class="error-metric-value">${rmseFormatted}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
         // Select an attempt and load its Svensson curve
         async function selectAttempt(attemptId) {
             selectedAttemptId = attemptId;
             await loadAttempts(); // Refresh the list to show selection
+            
+            // Update error metrics display
+            updateErrorMetrics(attemptId);
             
             try {
                 const response = await fetch(`/svensson/api/attempts/${attemptId}/curve/`);
@@ -898,6 +1005,8 @@
                             myChart.destroy();
                         }
                         renderChart();
+                        // Clear error metrics
+                        updateErrorMetrics(null);
                     }
                     await loadAttempts();
                 } else {
