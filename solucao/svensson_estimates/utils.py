@@ -127,10 +127,10 @@ def calculate_rmse(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
             
             # Svensson formula
             try:
-                term1 = beta0
-                term2 = beta1 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
-                term3 = beta2 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
-                term4 = beta3 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+                term1 = beta0/100.0
+                term2 = beta1/100.0 * ((1 - math.exp(-tau * lambda1)) / (tau * lambda1))
+                term3 = beta2/100.0 * (((1 - math.exp(-tau * lambda1)) / (tau * lambda1)) - math.exp(-tau * lambda1))
+                term4 = beta3/100.0 * (((1 - math.exp(-tau * lambda2)) / (tau * lambda2)) - math.exp(-tau * lambda2))
                 
                 tx_anual_calculada = term1 + term2 + term3 + term4
                 
@@ -215,10 +215,10 @@ def calculate_mae(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
             
             # Svensson formula
             try:
-                term1 = beta0
-                term2 = beta1 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
-                term3 = beta2 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
-                term4 = beta3 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+                term1 = beta0/100.0
+                term2 = beta1/100.0 * ((1 - math.exp(-tau * lambda1)) / (tau * lambda1))
+                term3 = beta2/100.0 * (((1 - math.exp(-tau * lambda1)) / (tau * lambda1)) - math.exp(-tau * lambda1))
+                term4 = beta3/100.0 * (((1 - math.exp(-tau * lambda2)) / (tau * lambda2)) - math.exp(-tau * lambda2))
                 
                 tx_anual_calculada = term1 + term2 + term3 + term4
                 
@@ -281,10 +281,10 @@ def calculate_r2(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
             tau = periodos_de_anos_de_252_dias
 
             try:
-                term1 = beta0
-                term2 = beta1 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
-                term3 = beta2 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
-                term4 = beta3 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+                term1 = beta0/100.0
+                term2 = beta1/100.0 * ((1 - math.exp(-tau * lambda1)) / (tau * lambda1))
+                term3 = beta2/100.0 * (((1 - math.exp(-tau * lambda1)) / (tau * lambda1)) - math.exp(-tau * lambda1))
+                term4 = beta3/100.0 * (((1 - math.exp(-tau * lambda2)) / (tau * lambda2)) - math.exp(-tau * lambda2))
 
                 tx_anual_calculada = term1 + term2 + term3 + term4
                 calculated_price = 1.0 / ((1.0 + tx_anual_calculada) ** periodos_de_anos_de_252_dias)
@@ -357,9 +357,9 @@ def calculate_objective_function(date, beta0, beta1, beta2, beta3, lambda1, lamb
             try:
                 # Svensson
                 term1 = beta0/100.0
-                term2 = beta1/100.0 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
-                term3 = beta2/100.0 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
-                term4 = beta3/100.0 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+                term2 = beta1/100.0 * ((1 - math.exp(-tau * lambda1)) / (tau * lambda1))
+                term3 = beta2/100.0 * (((1 - math.exp(-tau * lambda1)) / (tau * lambda1)) - math.exp(-tau * lambda1))
+                term4 = beta3/100.0 * (((1 - math.exp(-tau * lambda2)) / (tau * lambda2)) - math.exp(-tau * lambda2))
 
                 tx_anual_calculada = term1 + term2 + term3 + term4
                 calculated_price = 1.0 / ((1.0 + tx_anual_calculada) ** periodos_de_anos_de_252_dias)

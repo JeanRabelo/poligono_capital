@@ -763,7 +763,7 @@
                 
                 datasets.push({
                     label: curveLabel,
-                    data: svenssonData.curve.map(point => ({x: point.dias_corridos, y: point.taxa})),
+                    data: svenssonData.curve.map(point => ({x: point.dias_corridos, y: point.taxa * 100.0})),
                     borderColor: curveColor,
                     backgroundColor: 'transparent',
                     borderWidth: 3,

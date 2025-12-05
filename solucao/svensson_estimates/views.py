@@ -299,10 +299,10 @@ def get_svensson_curve(request, attempt_id):
         
         # Svensson formula
         try:
-            term1 = beta0
-            term2 = beta1 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
-            term3 = beta2 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
-            term4 = beta3 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+            term1 = beta0/100.0
+            term2 = beta1/100.0 * ((1 - math.exp(-tau * lambda1)) / (tau * lambda1))
+            term3 = beta2/100.0 * (((1 - math.exp(-tau * lambda1)) / (tau * lambda1)) - math.exp(-tau * lambda1))
+            term4 = beta3/100.0 * (((1 - math.exp(-tau * lambda2)) / (tau * lambda2)) - math.exp(-tau * lambda2))
             
             y = term1 + term2 + term3 + term4
             
