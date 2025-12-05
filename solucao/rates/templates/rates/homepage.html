@@ -39,6 +39,26 @@
             opacity: 0.9;
         }
         
+        .nav-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            margin: 0 10px;
+            transition: background 0.3s;
+            display: inline-block;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
         .card {
             background: white;
             border-radius: 15px;
@@ -337,6 +357,10 @@
         <div class="header">
             <h1>📊 Taxas DI x PRÉ - B3</h1>
             <p>Consulte a curva DI x PRÉ (252 e 360) da BM&FBOVESPA por data</p>
+        </div>
+        
+        <div class="nav-links">
+            <a href="{% url 'svensson_estimates:homepage' %}">📈 Estimativas Svensson →</a>
         </div>
         
         <div class="card">
