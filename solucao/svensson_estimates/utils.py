@@ -159,3 +159,90 @@ def calculate_rmse(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
         # Log the error or handle it appropriately
         print(f"Error calculating RMSE: {e}")
         return None
+
+
+def calculate_mae(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
+    """
+    Calculate MAE (Mean Absolute Error) for Svensson model parameters.
+    
+    This function calculates the MAE between real prices from B3 rates and 
+    calculated prices from the Svensson model with the given parameters.
+    
+    Args:
+        date (date): Date for which to fetch B3 rates
+        beta0 (float): Svensson parameter β0
+        beta1 (float): Svensson parameter β1
+        beta2 (float): Svensson parameter β2
+        beta3 (float): Svensson parameter β3
+        lambda1 (float): Svensson parameter λ1
+        lambda2 (float): Svensson parameter λ2
+    
+    Returns:
+        Decimal: MAE value, or None if calculation fails
+    
+    Formula:
+        MAE = (1/n) * sum(|price_error|)
+        price_error = real_price - calculated_price
+        real_price = 1/(1+tx_anual_B3_252)^(periodos_de_anos_de_252_dias)
+        calculated_price = 1/(1+tx_anual_calculada)^(periodos_de_anos_de_252_dias)
+        periodos_de_anos_de_252_dias = calculate_business_days(date, dias_corridos) / 252
+    """
+    try:
+        # Fetch all B3Rate records for the given date
+        b3_rates = B3Rate.objects.filter(date=date).order_by('dias_corridos')
+        
+        if not b3_rates.exists():
+            return None
+        
+        absolute_errors = []
+        
+        for rate in b3_rates:
+            # Calculate periods in years (252 business days)
+            business_days = calculate_business_days(date, rate.dias_corridos)
+            periodos_de_anos_de_252_dias = business_days / 252.0
+            
+            # Skip if no business days (edge case)
+            if periodos_de_anos_de_252_dias <= 0:
+                continue
+            
+            # Calculate real price from B3 rate
+            # di_pre_252 is in percentage, so we divide by 100
+            tx_anual_B3_252 = float(rate.di_pre_252) / 100.0
+            real_price = 1.0 / ((1.0 + tx_anual_B3_252) ** periodos_de_anos_de_252_dias)
+            
+            # Calculate Svensson rate (tau = periodos_de_anos_de_252_dias)
+            tau = periodos_de_anos_de_252_dias
+            
+            # Svensson formula
+            try:
+                term1 = beta0
+                term2 = beta1 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
+                term3 = beta2 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
+                term4 = beta3 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+                
+                tx_anual_calculada = term1 + term2 + term3 + term4
+                
+                # tx_anual_calculada is already in decimal form (not percentage)
+                # so we use it directly
+                calculated_price = 1.0 / ((1.0 + tx_anual_calculada) ** periodos_de_anos_de_252_dias)
+                
+                # Calculate price error
+                price_error = real_price - calculated_price
+                absolute_errors.append(abs(price_error))
+                
+            except (ZeroDivisionError, OverflowError, ValueError):
+                # Skip this point if calculation fails
+                continue
+        
+        # Calculate MAE
+        if len(absolute_errors) == 0:
+            return None
+        
+        mae = sum(absolute_errors) / len(absolute_errors)
+        
+        return Decimal(str(mae))
+        
+    except Exception as e:
+        # Log the error or handle it appropriately
+        print(f"Error calculating MAE: {e}")
+        return None

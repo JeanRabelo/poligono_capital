@@ -946,13 +946,20 @@
             const rmse = attempt.rmse_final !== null ? attempt.rmse_final : attempt.rmse_initial;
             const rmseType = attempt.rmse_final !== null ? 'Final' : 'Inicial';
             
-            if (rmse === null) {
-                metricsContainer.innerHTML = '<div class="no-metrics">RMSE não disponível</div>';
+            // Determine which MAE to display (prefer final if available)
+            const mae = attempt.mae_final !== null ? attempt.mae_final : attempt.mae_initial;
+            const maeType = attempt.mae_final !== null ? 'Final' : 'Inicial';
+            
+            if (rmse === null && mae === null) {
+                metricsContainer.innerHTML = '<div class="no-metrics">Métricas não disponíveis</div>';
                 return;
             }
             
             // Format RMSE with scientific notation if very small
-            const rmseFormatted = rmse < 0.0001 ? rmse.toExponential(4) : rmse.toFixed(6);
+            const rmseFormatted = rmse !== null ? (rmse < 0.0001 ? rmse.toExponential(4) : rmse.toFixed(6)) : 'N/A';
+            
+            // Format MAE with scientific notation if very small
+            const maeFormatted = mae !== null ? (mae < 0.0001 ? mae.toExponential(4) : mae.toFixed(6)) : 'N/A';
             
             metricsContainer.innerHTML = `
                 <div class="error-metrics-content">
@@ -962,6 +969,13 @@
                             <span class="tooltip">RMSE = √(¹⁄ₙ ∑ᵢ₌₁ⁿ eᵢ²)</span>
                         </div>
                         <div class="error-metric-value">${rmseFormatted}</div>
+                    </div>
+                    <div class="error-metric-item">
+                        <div class="error-metric-label">
+                            MAE (${maeType})
+                            <span class="tooltip">MAE = ¹⁄ₙ ∑ᵢ₌₁ⁿ |eᵢ|</span>
+                        </div>
+                        <div class="error-metric-value">${maeFormatted}</div>
                     </div>
                 </div>
             `;
