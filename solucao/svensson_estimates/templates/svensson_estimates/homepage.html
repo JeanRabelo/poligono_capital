@@ -242,6 +242,14 @@
             margin-bottom: 15px;
         }
         
+        .crud-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        
         .crud-header h3 {
             font-size: 1.3rem;
             color: #333;
@@ -593,7 +601,16 @@
                         <div class="crud-section">
                             <div class="crud-header">
                                 <h3>📝 Tentativas Lineares</h3>
-                                <button class="btn btn-primary" onclick="openCreateModal()">➕ Nova Tentativa</button>
+                                <div class="crud-actions">
+                                    <button 
+                                        id="improveButton" 
+                                        class="btn btn-success" 
+                                        style="display: none;" 
+                                        onclick="improveSelectedAttempt()">
+                                        🚀 Melhorar estimativa
+                                    </button>
+                                    <button class="btn btn-primary" onclick="openCreateModal()">➕ Nova Tentativa</button>
+                                </div>
                             </div>
                             <div class="attempts-list" id="attemptsList">
                                 <div class="no-attempts">Carregando...</div>
@@ -693,6 +710,19 @@
         let selectedAttemptId = null;
         let editingAttemptId = null;
         let attemptsData = [];
+        
+        function toggleImproveButton() {
+            const improveBtn = document.getElementById('improveButton');
+            if (!improveBtn) return;
+            improveBtn.style.display = selectedAttemptId ? 'inline-block' : 'none';
+        }
+        
+        function setImproveButtonLoading(isLoading) {
+            const improveBtn = document.getElementById('improveButton');
+            if (!improveBtn) return;
+            improveBtn.disabled = isLoading;
+            improveBtn.textContent = isLoading ? 'Melhorando...' : '🚀 Melhorar estimativa';
+        }
         
         function renderChart(svenssonData = null) {
             {% if rates_data %}
@@ -919,6 +949,8 @@
                 } else {
                     listContainer.innerHTML = '<div class="no-attempts">Nenhuma tentativa cadastrada para esta data.</div>';
                 }
+                
+                toggleImproveButton();
             } catch (error) {
                 console.error('Error loading attempts:', error);
                 document.getElementById('attemptsList').innerHTML = '<div class="no-attempts">Erro ao carregar tentativas.</div>';
@@ -1013,6 +1045,7 @@
         async function selectAttempt(attemptId) {
             selectedAttemptId = attemptId;
             await loadAttempts(); // Refresh the list to show selection
+            toggleImproveButton();
             
             // Update error metrics display
             updateErrorMetrics(attemptId);
@@ -1089,6 +1122,7 @@
                         renderChart();
                         // Clear error metrics
                         updateErrorMetrics(null);
+                        toggleImproveButton();
                     }
                     await loadAttempts();
                 } else {
@@ -1097,6 +1131,40 @@
             } catch (error) {
                 console.error('Error deleting attempt:', error);
                 alert('Erro ao excluir tentativa.');
+            }
+        }
+
+        // Improve selected attempt using backend optimizer
+        async function improveSelectedAttempt() {
+            if (!selectedAttemptId) {
+                return;
+            }
+            
+            setImproveButtonLoading(true);
+            try {
+                const response = await fetch(`/svensson/api/attempts/${selectedAttemptId}/improve/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ strategy: 'local_search' })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok || response.status === 202) {
+                    await selectAttempt(selectedAttemptId);
+                    if (!data.improved) {
+                        alert('Nenhuma melhora encontrada com a estratégia atual.');
+                    }
+                } else {
+                    alert('Erro ao melhorar tentativa: ' + (data.error || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Error improving attempt:', error);
+                alert('Erro ao melhorar tentativa.');
+            } finally {
+                setImproveButtonLoading(false);
             }
         }
         

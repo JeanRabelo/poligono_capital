@@ -1,13 +1,18 @@
-from django.shortcuts import render, get_object_or_404
+from datetime import date
+from decimal import Decimal
+import json
+import math
+from typing import Optional
+
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+
 from rates.models import B3Rate
 from .models import LinearAttempt
-from datetime import date
-import json
-from decimal import Decimal
-import math
+from .optimizers import OptimizationResult, optimize_parameters
+from .utils import calculate_objective_function
 
 
 def homepage(request):
@@ -42,7 +47,36 @@ def homepage(request):
     return render(request, 'svensson_estimates/homepage.html', context)
 
 
-@require_http_methods(["GET"])
+def _serialize_attempt(attempt: LinearAttempt) -> dict:
+    """Consistent representation of an attempt for JSON responses."""
+    return {
+        'id': attempt.id,
+        'date': attempt.date.isoformat(),
+        'beta0_initial': float(attempt.beta0_initial),
+        'beta1_initial': float(attempt.beta1_initial),
+        'beta2_initial': float(attempt.beta2_initial),
+        'beta3_initial': float(attempt.beta3_initial),
+        'lambda1_initial': float(attempt.lambda1_initial),
+        'lambda2_initial': float(attempt.lambda2_initial),
+        'beta0_final': float(attempt.beta0_final) if attempt.beta0_final else None,
+        'beta1_final': float(attempt.beta1_final) if attempt.beta1_final else None,
+        'beta2_final': float(attempt.beta2_final) if attempt.beta2_final else None,
+        'beta3_final': float(attempt.beta3_final) if attempt.beta3_final else None,
+        'lambda1_final': float(attempt.lambda1_final) if attempt.lambda1_final else None,
+        'lambda2_final': float(attempt.lambda2_final) if attempt.lambda2_final else None,
+        'rmse_initial': float(attempt.rmse_initial) if attempt.rmse_initial else None,
+        'rmse_final': float(attempt.rmse_final) if attempt.rmse_final else None,
+        'mae_initial': float(attempt.mae_initial) if attempt.mae_initial else None,
+        'mae_final': float(attempt.mae_final) if attempt.mae_final else None,
+        'r2_initial': float(attempt.r2_initial) if attempt.r2_initial else None,
+        'r2_final': float(attempt.r2_final) if attempt.r2_final else None,
+        'objective_function_initial': float(attempt.objective_function_initial) if attempt.objective_function_initial else None,
+        'objective_function_final': float(attempt.objective_function_final) if attempt.objective_function_final else None,
+        'observation': attempt.observation,
+        'created_at': attempt.created_at.isoformat(),
+    }
+
+
 def list_attempts(request):
     """
     API endpoint to list all LinearAttempt records for a specific date.
@@ -57,36 +91,7 @@ def list_attempts(request):
         return JsonResponse({'error': 'Invalid date format'}, status=400)
     
     attempts = LinearAttempt.objects.filter(date=selected_date).order_by('-created_at')
-    
-    attempts_data = []
-    for attempt in attempts:
-        attempts_data.append({
-            'id': attempt.id,
-            'date': attempt.date.isoformat(),
-            'beta0_initial': float(attempt.beta0_initial),
-            'beta1_initial': float(attempt.beta1_initial),
-            'beta2_initial': float(attempt.beta2_initial),
-            'beta3_initial': float(attempt.beta3_initial),
-            'lambda1_initial': float(attempt.lambda1_initial),
-            'lambda2_initial': float(attempt.lambda2_initial),
-            'beta0_final': float(attempt.beta0_final) if attempt.beta0_final else None,
-            'beta1_final': float(attempt.beta1_final) if attempt.beta1_final else None,
-            'beta2_final': float(attempt.beta2_final) if attempt.beta2_final else None,
-            'beta3_final': float(attempt.beta3_final) if attempt.beta3_final else None,
-            'lambda1_final': float(attempt.lambda1_final) if attempt.lambda1_final else None,
-            'lambda2_final': float(attempt.lambda2_final) if attempt.lambda2_final else None,
-            'rmse_initial': float(attempt.rmse_initial) if attempt.rmse_initial else None,
-            'rmse_final': float(attempt.rmse_final) if attempt.rmse_final else None,
-            'mae_initial': float(attempt.mae_initial) if attempt.mae_initial else None,
-            'mae_final': float(attempt.mae_final) if attempt.mae_final else None,
-            'r2_initial': float(attempt.r2_initial) if attempt.r2_initial else None,
-            'r2_final': float(attempt.r2_final) if attempt.r2_final else None,
-            'objective_function_initial': float(attempt.objective_function_initial) if attempt.objective_function_initial else None,
-            'objective_function_final': float(attempt.objective_function_final) if attempt.objective_function_final else None,
-            'observation': attempt.observation,
-            'created_at': attempt.created_at.isoformat(),
-        })
-    
+    attempts_data = [_serialize_attempt(attempt) for attempt in attempts]
     return JsonResponse({'attempts': attempts_data})
 
 
@@ -174,6 +179,78 @@ def delete_attempt(request, attempt_id):
     attempt = get_object_or_404(LinearAttempt, id=attempt_id)
     attempt.delete()
     return JsonResponse({'message': 'LinearAttempt deleted successfully'})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def improve_attempt(request, attempt_id):
+    """
+    Improve a LinearAttempt by running an optimizer and overwriting final parameters when better.
+    """
+    attempt = get_object_or_404(LinearAttempt, id=attempt_id)
+
+    # Parse optional payload (strategy selection)
+    strategy = "local_search"
+    try:
+        payload = json.loads(request.body) if request.body else {}
+        strategy = payload.get("strategy", strategy)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    use_final = (
+        attempt.beta0_final is not None and attempt.beta1_final is not None and
+        attempt.beta2_final is not None and attempt.beta3_final is not None and
+        attempt.lambda1_final is not None and attempt.lambda2_final is not None
+    )
+
+    base_params = (
+        float(attempt.beta0_final) if use_final else float(attempt.beta0_initial),
+        float(attempt.beta1_final) if use_final else float(attempt.beta1_initial),
+        float(attempt.beta2_final) if use_final else float(attempt.beta2_initial),
+        float(attempt.beta3_final) if use_final else float(attempt.beta3_initial),
+        float(attempt.lambda1_final) if use_final else float(attempt.lambda1_initial),
+        float(attempt.lambda2_final) if use_final else float(attempt.lambda2_initial),
+    )
+
+    base_objective = attempt.objective_function_final if use_final else attempt.objective_function_initial
+    if base_objective is None:
+        base_objective = calculate_objective_function(attempt.date, *base_params)
+
+    result: Optional[OptimizationResult] = None
+    try:
+        result = optimize_parameters(
+            attempt.date,
+            base_params,
+            strategy_name=strategy,
+        )
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
+
+    if result is None or result.best_objective is None:
+        return JsonResponse({'error': 'Não foi possível melhorar esta tentativa'}, status=400)
+
+    improved = base_objective is None or result.best_objective < base_objective
+    if improved:
+        attempt.beta0_final = Decimal(str(result.best_params[0]))
+        attempt.beta1_final = Decimal(str(result.best_params[1]))
+        attempt.beta2_final = Decimal(str(result.best_params[2]))
+        attempt.beta3_final = Decimal(str(result.best_params[3]))
+        attempt.lambda1_final = Decimal(str(result.best_params[4]))
+        attempt.lambda2_final = Decimal(str(result.best_params[5]))
+        attempt.save()
+        attempt.refresh_from_db()
+
+    response_payload = {
+        'improved': improved,
+        'previous_objective': float(base_objective) if base_objective is not None else None,
+        'new_objective': float(result.best_objective),
+        'strategy': result.strategy,
+        'iterations': result.iterations,
+        'attempt': _serialize_attempt(attempt),
+    }
+
+    status_code = 200 if improved else 202
+    return JsonResponse(response_payload, status=status_code)
 
 
 @require_http_methods(["GET"])

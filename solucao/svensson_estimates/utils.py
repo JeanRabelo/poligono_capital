@@ -352,21 +352,18 @@ def calculate_objective_function(date, beta0, beta1, beta2, beta3, lambda1, lamb
             # Preço "real" (B3)
             tx_anual_B3_252 = float(rate.di_pre_252) / 100.0
             real_price = 1.0 / ((1.0 + tx_anual_B3_252) ** periodos_de_anos_de_252_dias)
-
             tau = periodos_de_anos_de_252_dias
 
             try:
                 # Svensson
-                term1 = beta0
-                term2 = beta1 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
-                term3 = beta2 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
-                term4 = beta3 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+                term1 = beta0/100.0
+                term2 = beta1/100.0 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
+                term3 = beta2/100.0 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
+                term4 = beta3/100.0 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
 
                 tx_anual_calculada = term1 + term2 + term3 + term4
                 calculated_price = 1.0 / ((1.0 + tx_anual_calculada) ** periodos_de_anos_de_252_dias)
-
                 price_error = real_price - calculated_price
-
                 weight = 1.0 / float(rate.dias_corridos)
                 total += weight * (price_error ** 2)
                 used_points += 1
