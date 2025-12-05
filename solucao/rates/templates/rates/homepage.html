@@ -210,8 +210,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Taxas Referenciais B3</h1>
-            <p>Consulte as taxas referenciais BM&FBOVESPA por data</p>
+            <h1>📊 Taxas DI x PRÉ - B3</h1>
+            <p>Consulte a curva DI x PRÉ (252 e 360) da BM&FBOVESPA por data</p>
         </div>
         
         <div class="card">
@@ -227,7 +227,7 @@
                         value="{{ selected_date|date:'Y-m-d' }}"
                         max="{{ today|date:'Y-m-d' }}"
                     >
-                    <button type="submit" class="btn">🔍 Buscar taxas dessa data</button>
+                    <button type="submit" class="btn">🔍 Buscar curva DI x PRÉ</button>
                 </div>
             </form>
             
@@ -248,16 +248,18 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Indicador</th>
-                            <th>Valor (%)</th>
+                            <th>Dias Corridos</th>
+                            <th>DI x PRÉ 252 (%)</th>
+                            <th>DI x PRÉ 360 (%)</th>
                             <th>Data</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for rate in rates %}
                         <tr>
-                            <td>{{ rate.indicator }}</td>
-                            <td>{{ rate.value }}</td>
+                            <td>{{ rate.dias_corridos }}</td>
+                            <td>{{ rate.di_pre_252 }}</td>
+                            <td>{{ rate.di_pre_360 }}</td>
                             <td>{{ rate.date|date:"d/m/Y" }}</td>
                         </tr>
                         {% endfor %}
