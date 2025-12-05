@@ -950,7 +950,11 @@
             const mae = attempt.mae_final !== null ? attempt.mae_final : attempt.mae_initial;
             const maeType = attempt.mae_final !== null ? 'Final' : 'Inicial';
             
-            if (rmse === null && mae === null) {
+            // Determine which R² to display (prefer final if available)
+            const r2 = attempt.r2_final !== null ? attempt.r2_final : attempt.r2_initial;
+            const r2Type = attempt.r2_final !== null ? 'Final' : 'Inicial';
+            
+            if (rmse === null && mae === null && r2 === null) {
                 metricsContainer.innerHTML = '<div class="no-metrics">Métricas não disponíveis</div>';
                 return;
             }
@@ -960,6 +964,9 @@
             
             // Format MAE with scientific notation if very small
             const maeFormatted = mae !== null ? (mae < 0.0001 ? mae.toExponential(4) : mae.toFixed(6)) : 'N/A';
+            
+            // Format R² (typically between 0 and 1, can be negative for poor fits)
+            const r2Formatted = r2 !== null ? r2.toFixed(6) : 'N/A';
             
             metricsContainer.innerHTML = `
                 <div class="error-metrics-content">
@@ -976,6 +983,13 @@
                             <span class="tooltip">MAE = ¹⁄ₙ ∑ᵢ₌₁ⁿ |eᵢ|</span>
                         </div>
                         <div class="error-metric-value">${maeFormatted}</div>
+                    </div>
+                    <div class="error-metric-item">
+                        <div class="error-metric-label">
+                            R² (${r2Type})
+                            <span class="tooltip">R² = 1 − (SSᵣₑₛ / SSₜₒₜ)</span>
+                        </div>
+                        <div class="error-metric-value">${r2Formatted}</div>
                     </div>
                 </div>
             `;

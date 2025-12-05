@@ -79,6 +79,8 @@ def list_attempts(request):
             'rmse_final': float(attempt.rmse_final) if attempt.rmse_final else None,
             'mae_initial': float(attempt.mae_initial) if attempt.mae_initial else None,
             'mae_final': float(attempt.mae_final) if attempt.mae_final else None,
+            'r2_initial': float(attempt.r2_initial) if attempt.r2_initial else None,
+            'r2_final': float(attempt.r2_final) if attempt.r2_final else None,
             'observation': attempt.observation,
             'created_at': attempt.created_at.isoformat(),
         })

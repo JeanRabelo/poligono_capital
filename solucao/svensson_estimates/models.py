@@ -39,6 +39,8 @@ class LinearAttempt(models.Model):
     rmse_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="RMSE for final parameters")
     mae_initial = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="MAE for initial parameters")
     mae_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="MAE for final parameters")
+    r2_initial = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="R² for initial parameters")
+    r2_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="R² for final parameters")
     
     # Observation field
     observation = models.TextField(blank=True, help_text="Notes about this estimation attempt")

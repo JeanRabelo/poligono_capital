@@ -246,3 +246,76 @@ def calculate_mae(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
         # Log the error or handle it appropriately
         print(f"Error calculating MAE: {e}")
         return None
+
+def calculate_r2(date, beta0, beta1, beta2, beta3, lambda1, lambda2):
+    """
+    Calculate R² (Coefficient of Determination) for Svensson model parameters.
+
+    R² = 1 - (SS_res / SS_tot)
+    SS_res = sum((y - y_hat)^2)
+    SS_tot = sum((y - y_mean)^2)
+
+    Where:
+        y      = real_price (from B3 rate)
+        y_hat  = calculated_price (from Svensson model)
+    """
+    try:
+        b3_rates = B3Rate.objects.filter(date=date).order_by('dias_corridos')
+
+        if not b3_rates.exists():
+            return None
+
+        real_values = []
+        predicted_values = []
+
+        for rate in b3_rates:
+            business_days = calculate_business_days(date, rate.dias_corridos)
+            periodos_de_anos_de_252_dias = business_days / 252.0
+
+            if periodos_de_anos_de_252_dias <= 0:
+                continue
+
+            tx_anual_B3_252 = float(rate.di_pre_252) / 100.0
+            real_price = 1.0 / ((1.0 + tx_anual_B3_252) ** periodos_de_anos_de_252_dias)
+
+            tau = periodos_de_anos_de_252_dias
+
+            try:
+                term1 = beta0
+                term2 = beta1 * ((1 - math.exp(-tau / lambda1)) / (tau / lambda1))
+                term3 = beta2 * (((1 - math.exp(-tau / lambda1)) / (tau / lambda1)) - math.exp(-tau / lambda1))
+                term4 = beta3 * (((1 - math.exp(-tau / lambda2)) / (tau / lambda2)) - math.exp(-tau / lambda2))
+
+                tx_anual_calculada = term1 + term2 + term3 + term4
+                calculated_price = 1.0 / ((1.0 + tx_anual_calculada) ** periodos_de_anos_de_252_dias)
+
+                real_values.append(real_price)
+                predicted_values.append(calculated_price)
+
+            except (ZeroDivisionError, OverflowError, ValueError):
+                continue
+
+        if len(real_values) < 2:
+            return None
+
+        y_mean = sum(real_values) / len(real_values)
+
+        ss_res = 0.0
+        ss_tot = 0.0
+        for y, y_hat in zip(real_values, predicted_values):
+            diff_res = y - y_hat
+            ss_res += diff_res * diff_res
+
+            diff_tot = y - y_mean
+            ss_tot += diff_tot * diff_tot
+
+        if ss_tot == 0.0:
+            # Todos os y iguais => R² indefinido (não há variância a explicar)
+            return None
+
+        r2 = 1.0 - (ss_res / ss_tot)
+        return Decimal(str(r2))
+
+    except Exception as e:
+        print(f"Error calculating R²: {e}")
+        return None
