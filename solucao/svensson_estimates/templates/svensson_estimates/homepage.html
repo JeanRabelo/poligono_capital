@@ -1199,6 +1199,9 @@
                     if (!data.improved) {
                         alert('Nenhuma melhora encontrada com a estratégia atual.');
                     }
+                    else {
+                        alert(`Tentativa melhorada com sucesso! ${data.strategy} - ${data.iterations} iterações`);
+                    }
                 } else {
                     alert('Erro ao melhorar tentativa: ' + (data.error || 'Erro desconhecido'));
                 }
