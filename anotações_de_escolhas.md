@@ -1,2 +1,3 @@
 ## Contagem de dias úteis
 - Foi considerado que os dias úteis são os "corretos", contando os feriados, finais de semana etc. A própria documentação da Anbima considera assim, aparentemente. Isso faz com que anos tenham durações variáveis em dias úteis (e dias corridos também), mas o denominador da potência é sempre a mesma, 252.
+- Além disso, a curva de juros considerada foi também a de 252 dias. A B3 dá tanto a curva de juros de 252 dias (dias úteis) quanto a de 360 dias (dias corridos). Porém, a Anbima calcula o resultado considerando 252 dias (um dos vértices do que ela expõe no site dela é 252 dias, o outro é 504, assim por diante...). Considerei mais adequado fazer os cálculos com a curva de 252 dias do que a de 360 dias.
