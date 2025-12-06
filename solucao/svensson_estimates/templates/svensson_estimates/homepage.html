@@ -955,7 +955,8 @@
                 
                 if (data.attempts && data.attempts.length > 0) {
                     listContainer.innerHTML = data.attempts.map(attempt => {
-                        const hasFinal = attempt.beta0_final !== null;
+                        const hasFinal = [attempt.beta0_final, attempt.beta1_final, attempt.lambda1_final, attempt.lambda2_final]
+                            .every(value => value !== null && value !== undefined);
                         const statusClass = hasFinal ? 'status-final' : 'status-initial';
                         const statusText = hasFinal ? 'Final' : 'Inicial';
                         const isSelected = selectedAttemptId === attempt.id;
@@ -968,8 +969,8 @@
                                         ${new Date(attempt.created_at).toLocaleString('pt-BR')}
                                     </div>
                                     <div class="attempt-params">
-                                        β0=${attempt.beta0_initial.toFixed(4)}, β1=${attempt.beta1_initial.toFixed(4)}, 
-                                        λ1=${attempt.lambda1_initial.toFixed(4)}, λ2=${attempt.lambda2_initial.toFixed(4)}
+                                        β0=${(hasFinal ? attempt.beta0_final : attempt.beta0_initial).toFixed(4)}, β1=${(hasFinal ? attempt.beta1_final : attempt.beta1_initial).toFixed(4)}, 
+                                        λ1=${(hasFinal ? attempt.lambda1_final : attempt.lambda1_initial).toFixed(4)}, λ2=${(hasFinal ? attempt.lambda2_final : attempt.lambda2_initial).toFixed(4)}
                                     </div>
                                     ${attempt.observation ? `<div class="attempt-params">${attempt.observation}</div>` : ''}
                                 </div>
