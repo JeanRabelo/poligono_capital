@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 
 from rates.models import B3Rate
 from .models import LinearAttempt
-from .optimizers import OptimizationResult, optimize_parameters
+from .optimizers import OptimizationResult, optimize_parameters, available_strategies
 from .utils import calculate_objective_function, calculate_calendar_days, calculate_business_days
 
 
@@ -191,11 +191,11 @@ def improve_attempt(request, attempt_id):
     """
     attempt = get_object_or_404(LinearAttempt, id=attempt_id)
 
-    # Parse optional payload (strategy selection)
-    strategy = "local_search"
     try:
         payload = json.loads(request.body) if request.body else {}
-        strategy = payload.get("strategy", strategy)
+        strategy = payload.get("strategy")
+        if strategy is None or strategy not in available_strategies():
+            return JsonResponse({'error': f'Strategy parameter is required and must be one of: {", ".join(available_strategies())}'}, status=400)
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
