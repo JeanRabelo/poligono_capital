@@ -41,8 +41,8 @@ class LinearAttempt(models.Model):
     mae_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="MAE for final parameters")
     r2_initial = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="R² for initial parameters")
     r2_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="R² for final parameters")
-    objective_function_initial = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Objective Function for initial parameters")
-    objective_function_final = models.DecimalField(max_digits=15, decimal_places=8, null=True, blank=True, help_text="Objective Function for final parameters")
+    objective_function_initial = models.DecimalField(max_digits=18, decimal_places=15, null=True, blank=True, help_text="Objective Function for initial parameters")
+    objective_function_final = models.DecimalField(max_digits=18, decimal_places=15, null=True, blank=True, help_text="Objective Function for final parameters")
     
     # Observation field
     observation = models.TextField(blank=True, help_text="Notes about this estimation attempt")
