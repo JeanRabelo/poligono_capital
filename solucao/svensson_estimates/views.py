@@ -39,11 +39,19 @@ def homepage(request):
                     rate_data.dias_uteis = calculate_business_days(selected_date, rate_data.dias_corridos)
         except (ValueError, TypeError):
             pass
-    
+    strategy_options = [
+        {
+            'value': strategy,
+            'label': strategy.replace('_', ' ').title(),
+        }
+        for strategy in available_strategies()
+    ]
+
     context = {
         'available_dates': available_dates,
         'selected_date': selected_date,
         'rates_data': rates_data,
+        'available_strategies': strategy_options,
     }
     
     return render(request, 'svensson_estimates/homepage.html', context)
