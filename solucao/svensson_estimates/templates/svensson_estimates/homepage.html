@@ -955,7 +955,14 @@
                 
                 if (data.attempts && data.attempts.length > 0) {
                     listContainer.innerHTML = data.attempts.map(attempt => {
-                        const hasFinal = [attempt.beta0_final, attempt.beta1_final, attempt.lambda1_final, attempt.lambda2_final]
+                        const hasFinal = [
+                            attempt.beta0_final,
+                            attempt.beta1_final,
+                            attempt.beta2_final,
+                            attempt.beta3_final,
+                            attempt.lambda1_final,
+                            attempt.lambda2_final
+                        ]
                             .every(value => value !== null && value !== undefined);
                         const statusClass = hasFinal ? 'status-final' : 'status-initial';
                         const statusText = hasFinal ? 'Final' : 'Inicial';
@@ -969,7 +976,7 @@
                                         ${new Date(attempt.created_at).toLocaleString('pt-BR')}
                                     </div>
                                     <div class="attempt-params">
-                                        β0=${(hasFinal ? attempt.beta0_final : attempt.beta0_initial).toFixed(4)}, β1=${(hasFinal ? attempt.beta1_final : attempt.beta1_initial).toFixed(4)}, 
+                                        β0=${(hasFinal ? attempt.beta0_final : attempt.beta0_initial).toFixed(4)}, β1=${(hasFinal ? attempt.beta1_final : attempt.beta1_initial).toFixed(4)}, β2=${(hasFinal ? attempt.beta2_final : attempt.beta2_initial).toFixed(4)}, β3=${(hasFinal ? attempt.beta3_final : attempt.beta3_initial).toFixed(4)}, 
                                         λ1=${(hasFinal ? attempt.lambda1_final : attempt.lambda1_initial).toFixed(4)}, λ2=${(hasFinal ? attempt.lambda2_final : attempt.lambda2_initial).toFixed(4)}
                                     </div>
                                     ${attempt.observation ? `<div class="attempt-params">${attempt.observation}</div>` : ''}
