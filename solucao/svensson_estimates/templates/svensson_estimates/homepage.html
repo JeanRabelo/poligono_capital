@@ -602,13 +602,26 @@
                             <div class="crud-header">
                                 <h3>📝 Tentativas Lineares</h3>
                                 <div class="crud-actions">
-                                    <button 
-                                        id="improveButton" 
-                                        class="btn btn-success" 
-                                        style="display: none;" 
-                                        onclick="improveSelectedAttempt()">
-                                        🚀 Melhorar estimativa
-                                    </button>
+                                    <div 
+                                        id="improveDropdown" 
+                                        class="dropdown"
+                                        style="display: none; position: relative; margin-right: 8px;">
+                                        <button 
+                                            id="improveButton" 
+                                            class="btn btn-success dropdown-toggle" 
+                                            type="button"
+                                            onclick="toggleImproveDropdown()">
+                                            🚀 Melhorar estimativa
+                                        </button>
+                                        <div 
+                                            id="improveDropdownMenu" 
+                                            class="dropdown-menu" 
+                                            style="display: none; position: absolute; top: 100%; left: 0; min-width: 200px; background: #fff; border: 1px solid #ccc; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 1000; padding: 4px 0;">
+                                            <button class="dropdown-item" type="button" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none;" onclick="selectImproveStrategy('local_search')">
+                                                Local search
+                                            </button>
+                                        </div>
+                                    </div>
                                     <button class="btn btn-primary" onclick="openCreateModal()">➕ Nova Tentativa</button>
                                 </div>
                             </div>
@@ -717,17 +730,49 @@
         let lastSvenssonData = null;
         
         function toggleImproveButton() {
-            const improveBtn = document.getElementById('improveButton');
-            if (!improveBtn) return;
-            improveBtn.style.display = selectedAttemptId ? 'inline-block' : 'none';
+            const improveDropdown = document.getElementById('improveDropdown');
+            const dropdownMenu = document.getElementById('improveDropdownMenu');
+            if (!improveDropdown) return;
+            const shouldShow = Boolean(selectedAttemptId);
+            improveDropdown.style.display = shouldShow ? 'inline-block' : 'none';
+            if (!shouldShow && dropdownMenu) {
+                dropdownMenu.style.display = 'none';
+            }
         }
         
         function setImproveButtonLoading(isLoading) {
             const improveBtn = document.getElementById('improveButton');
+            const dropdownMenu = document.getElementById('improveDropdownMenu');
             if (!improveBtn) return;
             improveBtn.disabled = isLoading;
             improveBtn.textContent = isLoading ? 'Melhorando...' : '🚀 Melhorar estimativa';
+            if (isLoading && dropdownMenu) {
+                dropdownMenu.style.display = 'none';
+            }
         }
+        
+        function toggleImproveDropdown() {
+            const dropdownMenu = document.getElementById('improveDropdownMenu');
+            if (!dropdownMenu) return;
+            dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        function selectImproveStrategy(strategy) {
+            const dropdownMenu = document.getElementById('improveDropdownMenu');
+            if (dropdownMenu) {
+                dropdownMenu.style.display = 'none';
+            }
+            improveSelectedAttempt(strategy);
+        }
+        
+        document.addEventListener('click', (event) => {
+            const dropdown = document.getElementById('improveDropdown');
+            const dropdownMenu = document.getElementById('improveDropdownMenu');
+            if (!dropdown || !dropdownMenu) return;
+            if (!dropdown.contains(event.target)) {
+                dropdownMenu.style.display = 'none';
+            }
+        });
         
         function renderChart(svenssonData = null) {
             if (svenssonData !== null) {
@@ -1177,7 +1222,7 @@
         }
 
         // Improve selected attempt using backend optimizer
-        async function improveSelectedAttempt() {
+        async function improveSelectedAttempt(strategy = 'local_search') {
             if (!selectedAttemptId) {
                 return;
             }
@@ -1189,7 +1234,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ strategy: 'local_search' })
+                    body: JSON.stringify({ strategy })
                 });
                 
                 const data = await response.json();
