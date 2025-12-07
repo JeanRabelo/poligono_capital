@@ -1,6 +1,6 @@
-# Bem vindo à solução do case!
+# Bem-vindo à solução do case!
 
-Vou, ao longo desse README.md, falar sobre 4 assuntos:
+Vou, ao longo desse README.md, falar sobre 3 assuntos:
 
 - A. Como executar o código;
 - B. Como o código soluciona o que foi pedido;
@@ -72,13 +72,13 @@ python3 manage.py runserver
 
 ![Tela inicial](<assets/Tela inicial.png>)
 
-🟢❗ **Decisão relevante:** seria bem mais prático colocar tudo em um Docker. Economizaria bastante tempo com os passos acima. Porém, além de exigir que no computador em que você está rodando a aplicação tenha Docker (o que não é tão comum), algumas empresas proíbem o uso dele. Os passos acima supõem que você tem python no computador, o que é bem mais provável do que Docker.
+🟢❗ **Decisão relevante:** seria bem mais prático colocar tudo em um Docker. Economizaria bastante tempo com os passos acima. Porém, além de exigir que no computador em que você está rodando a aplicação tenha o Docker instalado (o que não é tão comum), algumas empresas proíbem o uso dele. Os passos acima supõem que você tem python no computador, o que é bem mais provável do que ter Docker.
 
 ## B. Como o código soluciona o que foi pedido
 
 1. Coleta de dados.
 
-A ETL dos dados da B3 é a página inicial da aplicação.
+A ETL dos dados da B3 fica na página inicial da aplicação.
 
 ![ETL - escolha de datas](<assets/ETL - escolha de datas.png>)
 
@@ -105,7 +105,7 @@ Para cada data, temos tentativas de encontrar bons parâmetros para a curva de s
 🟢❗ **Decisão relevante:** os motivos pelos quais escolhi somente considerar essa taxa de juros são 2.
 
 ```
-i. Primeiramente, como o "DI x PRÉ 252" e o "DI x PRÉ 360" representam a mesma grandeza em bases de dias diferentes, não pareceu muito necessário incluir os 2;
+i. Primeiramente, como o "DI x PRÉ 252" e o "DI x PRÉ 360" representam a mesma grandeza em bases de dias diferentes, não pareceu muito necessário incluir ambos;
 ii. O "Gabarito" da ANBIMA leva em consideração essa taxa de base 252 no cálculo que ela divulga (link: https://www.anbima.com.br/pt_br/informar/curvas-de-juros-fechamento.htm) (um dos vértices do que ela expõe no site dela é 252 dias, o outro é 504, assim por diante...). Logo, para comparar com os resultados da ANBIMA, seria mais prático usar 252 do qe 360;
 ```
 
@@ -115,7 +115,7 @@ Para criar uma curva de Svensson nova e começar a tentar encontrar bons parâme
 
 Nesse modal que aparece no site, basta escrever os parâmetros iniciais da tentativa. Os índices dos "betas" estão com uma convenção um pouco diferente (começando em "0" em vez de "1"), mas o uso da aplicação continua intuitivo. É recomendado usar o campo de observações também, para identificar essa tentativa.
 
-Obs: os "beta" dessa tela estão com unidade de porcentagem e usando vírgula pare decimais. Então se você quiser preencher algo como "10,5%", não use algo como "0.105", mas "10,5".
+Obs: os "betas" dessa tela estão com unidade de porcentagem e usando vírgula para decimais. Então se você quiser preencher algo como "10,5%", não use algo como "0.105", mas "10,5".
 
 Também é possível escolher, como parâmetros, os parâmetros do dia útil anterior com a melhor (menor) função objetivo, para dar ao método de otimização um "warm start".
 
@@ -135,18 +135,20 @@ Ao ser selecionada uma tentativa, a curva de Svensson associada a ela é exibida
 
 À direita, temos as métricas de erro pedidas (RMSE, MAE, R^2) e a função objetivo (a função erro ponderada a ser minimizada) para aquela tentativa.
 
-Temos também a opção de mostrar o gráfico em dias corridos ou dias úteis (só o que muda é o eixo "x", pois o "y" está sempre considerando juros anual com com base de 252 dias úteis).
+Temos também a opção de mostrar o gráfico em dias corridos ou dias úteis (só o que muda é o eixo "x", pois o "y" está sempre considerando juros anual com base de 252 dias úteis).
 
-🟢❗ **Decisão relevante:** foi considerado que os dias úteis são os "corretos", contando os feriados caso a caso, finais de semana etc. A própria documentação da Anbima considera assim, aparentemente. Isso faz com que anos tenham durações variáveis em dias úteis (e dias corridos também), mas o denominador da potência é sempre a mesma, 252.
+🟢❗ **Decisão relevante:** foi considerado que os dias úteis são os "corretos", contando os feriados caso a caso, finais de semana etc. A própria documentação da Anbima considera assim, aparentemente. Isso faz com que anos tenham durações variáveis em dias úteis (e dias corridos também), mas o denominador da potência é sempre o mesmo, 252.
 
 Além disso, temos 2 gráficos de Resíduos:
 
 ```
-i. um simples, chamado de "Resíduo", que é a simples diferença entre a taxa de juros real e a calculada;
+i. um simples, chamado de "Resíduo", que é a mera diferença entre a taxa de juros real e a calculada;
 ii. um que leva em consideração exatamente o cálculo da função objetivo (sqrt((1/duration) * (erro_de_preço) ^ 2));
 ```
 
-Obs: como esses resíduos são representados por barras e são muitos pontos no gráfico, eles ficam praticamente invisíveis no cômputo geral. Porém, se for dado um zoom no gráfico, vai ser possível vê-los com mais detalhes.
+Obs: como esses resíduos são representados por barras e são muitos pontos no gráfico, eles ficam praticamente invisíveis na visão geral. Porém, se for dado um zoom no gráfico, vai ser possível vê-los com mais detalhes.
+
+🟡❗ **Possibilidade de melhoria:** substituir o gráfico de barra dos resíduos por gráficos de pontos ligados. Isso pode ajudar na visualização desses resíduos.
 
 3. Estimativa dos parâmetros da curva utilizando otimização
 
@@ -192,7 +194,7 @@ Depois de algum tempo, há uma mensagem de sucesso ou fracasso da tentativa de m
 
 ![Svensson - mensagem de tentativa de melhoria](<assets/Svensson - mensagem de tentativa de melhoria.png>)
 
-Essa questão do tempo é relevante, pois pode parecer que o site não funciona, mas é só que o computador está trabalhando no backend, mesmo. Em uma máquina com processador core I5 de 13ª geração, 16GB de RAM e placa de vídeo Geforce RTX 4050 de 6GB de RAM as estratégias mais demoradas ("Hybrid Search" e "Hybrid Search From Current Result") levam um pouco menos de 2 min.
+Essa questão do tempo é relevante, pois pode parecer que o site não funciona, mas é só que o computador está trabalhando no backend, mesmo. Em uma máquina com processador core I5 de 13ª geração, 16GB de RAM e placa de vídeo GeForce RTX 4050 de 6GB de RAM as estratégias mais demoradas ("Hybrid Search" e "Hybrid Search From Current Result") levam um pouco menos de 2 min.
 
 4. Validação dos resultados
 
@@ -200,7 +202,7 @@ Comparando os resultados que obtive com algumas iterações de Hybrid Search com
 
 ![Validação - resultados ANBIMA](<assets/Validação - resultados ANBIMA.png>)
 
-(a curva acima foi obtida usado os resultados alcançados pela ANBIMA para os dados da data 04/12/2025)
+(a curva acima foi obtida usando os resultados alcançados pela ANBIMA para os dados da data 04/12/2025)
 
 ![Validação - resultados próprios](<assets/Validação - resultados próprios.png>)
 
@@ -211,6 +213,6 @@ Foi possível encontrar uma função objetivo menor que a da ANBIMA (4.2863e-7 <
 Dado que é improvável que um indivíduo sozinho, com pouca experiência no assunto e o poder computacional de um notebook pessoal seja mais eficiente que a ANBIMA, é possível pensar em algumas hipóteses:
 
 1. Os dados que a ANBIMA usa para fazer sua curva são um pouco diferentes do que usei, pois ela pode usar os dados de mercado originais, não eventuais dados já calculados pela B3.
-2. Como as maiores diferenças são nos pontos de mais longo prazo, pode ser que a ANBIMA não considere esses dados na sua otimização (e isso faz sentido, dado que o gráfico que a anbima divulga "para" muito antes do meu, conforme exemplo do site da ANBIMA abaixo).
+2. Como as maiores diferenças são nos pontos de mais longo prazo, pode ser que a ANBIMA não considere esses dados na sua otimização (e isso faz sentido, dado que o gráfico que a ANBIMA divulga "para" muito antes do meu, conforme exemplo do site da ANBIMA abaixo).
 
 ![Validação - resultado da ANBIMA para dia 04-12-2025](<assets/Validação - resultado da ANBIMA para dia 04-12-2025.png>)
