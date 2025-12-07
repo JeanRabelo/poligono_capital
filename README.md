@@ -127,9 +127,17 @@ Depois de preencher, é só clicar na tentativa para selecioná-la.
 
 ![Svensson - tentativa selecionada](<assets/Svensson - tentativa selecionada.png>)
 
+Ao ser selecionada uma tentativa, a curva de Svensson associada a ela é exibida (em amarelo se essa curva está levando em consideração os parâmetros iniciais da tentativa e em verde se forem os parâmetros finais).
+
+!-> possibilidade de melhoria: salvar os pontos calculados da curva e os 2 tipos de resíduos em uma solução cache. Devido ao fato de que são muitos pontos, decidi não armazená-los de maneira perene no banco de dados e sim calculá-los toda vez que uma tentativa é selecionada. Essa decisão economiza espaço em disco, mas aumenta o tempo de exibição desses gráficos após o clique. Se for implementada uma ferramenta simples de cache, isso pode significar o melhor dos 2 mundos, pois o caching pode armazenar somente os pontos das curvas vistas com mais frequência ou mais recentemente.
+
+!-> possibilidade de melhoria: criar uma calculadora em javascript, só no frontend, que permite ao usuário checar, em tempo real, como fica o formato da curva com alguns ajustes manuais e visuais. Assim, o usuário tem mais uma opção de escolha de parâmetros iniciais a serem melhorados: uma escolha de parâmetros que siga o que o usuário visualmente percebeu ser adequado.
+
 À direita, temos as métricas de erro pedidas (RMSE, MAE, R^2) e a função objetivo (a função erro ponderada a ser minimizada) para aquela tentativa.
 
 Temos também a opção de mostrar o gráfico em dias corridos ou dias úteis (só o que muda é o eixo "x", pois o "y" está sempre considerando juros anual com com base de 252 dias úteis).
+
+!-> decisão relevante: foi considerado que os dias úteis são os "corretos", contando os feriados caso a caso, finais de semana etc. A própria documentação da Anbima considera assim, aparentemente. Isso faz com que anos tenham durações variáveis em dias úteis (e dias corridos também), mas o denominador da potência é sempre a mesma, 252.
 
 Além disso, temos 2 gráficos de Resíduos:
 
@@ -172,6 +180,9 @@ O **Hybrid Search From Current Result** é quase o mesmo pipeline do Hybrid Sear
 
 Para não ficar preso caso a vizinhança seja ruim, ele ainda injeta uma pequena fração de candidatos totalmente aleatórios (**global injection**, ex.: 10%), o que ajuda a escapar de mínimos locais sem perder o foco no refinamento a partir do resultado atual. Em resumo: é um híbrido “mais quente” (warm start), ótimo quando você quer melhorar incrementalmente uma solução que já está próxima do ideal.
 
+!-> possibilidade de melhoria: usar métodos mais avançados de otimização, principalmente ao final da otimização, como métodos quasi-newton.
+
+!-> possibilidade de melhoria: usar bibliotecas Scipy, Scikit Learn etc para fazer alguns desses cálculos de otimização, pois elas têm muito mais maturidade para fazer algumas dessas tarefas (e eventualmente utilizam melhor os recursos do PC, como a GPU, por exemplo).
 
 É bem fácil expandir para colocar mais métodos: é só incluí-los no código optimizers.py e registrá-lo ao final do script.
 
