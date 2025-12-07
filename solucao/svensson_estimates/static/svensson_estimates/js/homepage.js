@@ -533,7 +533,7 @@
         const title = document.getElementById('modalTitle');
         const form = document.getElementById('attemptForm');
         const modal = document.getElementById('attemptModal');
-        if (title) title.textContent = 'Nova Tentativa Linear';
+        if (title) title.textContent = 'Nova Tentativa';
         if (form) form.reset();
         if (modal) modal.classList.add('show');
     }
@@ -550,7 +550,7 @@
                 const form = document.getElementById('attemptForm');
                 const modal = document.getElementById('attemptModal');
                 const title = document.getElementById('modalTitle');
-                if (title) title.textContent = 'Editar Tentativa Linear';
+                if (title) title.textContent = 'Editar Tentativa';
                 if (form) {
                     form.beta0_initial.value = attempt.beta0_initial;
                     form.beta1_initial.value = attempt.beta1_initial;
