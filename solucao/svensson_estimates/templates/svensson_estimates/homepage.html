@@ -823,7 +823,9 @@
             ];
             const diPre252Data = diPre252Source.map(point => ({
                 x: isDiasUteis ? point.dias_uteis : point.dias_corridos,
-                y: point.di_pre_252
+                y: point.di_pre_252,
+                dias_corridos: point.dias_corridos,
+                dias_uteis: point.dias_uteis
             }));
             
             // Prepare datasets
@@ -899,6 +901,22 @@
                     })
                     .filter(point => point !== null);
                 
+                const residualWeightedData = diPre252Data
+                    .map(point => {
+                        const svenssonValue = getCurveY(point.x);
+                        if (svenssonValue === null || svenssonValue === undefined) return null;
+                        if (!point.dias_corridos) return null;
+                        const diFactor = Math.pow(1 + point.y / 100, point.dias_uteis / 252);
+                        const svenssonFactor = Math.pow(1 + svenssonValue / 100, point.dias_uteis / 252);
+                        const diff = (1 / diFactor) - svenssonFactor;
+                        const weightedResidual = Math.sqrt((1 / point.dias_corridos) * Math.pow(diff, 2));
+                        return {
+                            x: point.x,
+                            y: weightedResidual
+                        };
+                    })
+                    .filter(point => point !== null);
+                
                 datasets.push({
                     label: 'Resíduo',
                     data: residualData,
@@ -906,6 +924,18 @@
                     yAxisID: 'y1',
                     backgroundColor: 'rgba(255, 99, 132, 0.35)',
                     borderColor: '#ff6384',
+                    borderWidth: 1,
+                    borderSkipped: false,
+                    parsing: false
+                });
+                
+                datasets.push({
+                    label: 'Resíduo ponderado (1/duration)',
+                    data: residualWeightedData,
+                    type: 'bar',
+                    yAxisID: 'y1',
+                    backgroundColor: 'rgba(54, 162, 235, 0.35)',
+                    borderColor: '#36a2eb',
                     borderWidth: 1,
                     borderSkipped: false,
                     parsing: false
@@ -952,7 +982,7 @@
                                 },
                                 label: function(context) {
                                     const value = context.parsed.y;
-                                    const suffix = context.dataset.yAxisID === 'y1' ? ' p.p.' : '%';
+                                    const suffix = context.dataset.yAxisID === 'y1' ? ' %' : '%';
                                     return context.dataset.label + ': ' + value.toFixed(2) + suffix;
                                 }
                             }
@@ -1031,7 +1061,7 @@
                             position: 'right',
                             title: {
                                 display: true,
-                                text: 'Resíduo (p.p.)',
+                                text: 'Resíduo (%)',
                                 font: {
                                     size: 14,
                                     weight: 'bold'
@@ -1046,7 +1076,7 @@
                                     size: 12
                                 },
                                 callback: function(value) {
-                                    return value.toFixed(2) + ' p.p.';
+                                    return value.toFixed(2) + ' %';
                                 }
                             }
                         }
