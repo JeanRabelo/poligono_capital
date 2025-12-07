@@ -150,11 +150,28 @@ Ao clicar nele, podemos ver algumas alternativas de métodos de melhoria dos par
 
 Explicando cada um deles:
 
-```
-i. Local Search
-ii. Hybrid Search
-iii. Hybrid Search From Current Result
-```
+### i. Local Search
+
+O **Local Search** é um método determinístico de “busca por vizinhança” (coordinate search). A ideia é simples: partindo de um conjunto inicial de parâmetros, ele tenta melhorar a função objetivo ajustando **um parâmetro por vez**, testando pequenos movimentos para cima e para baixo (±) e aceitando qualquer mudança que reduza o erro. No meu código, isso é feito em *coordenadas*: escolhe-se um índice (um beta ou lambda), gera-se um candidato alterando só aquele parâmetro, avalia-se a função objetivo e, se melhorar, o candidato vira o novo “melhor atual”.
+
+Para ficar estável em escalas diferentes (betas podem ser bem maiores que lambdas), os passos são **relativos ao tamanho do parâmetro** (step * base), e o algoritmo usa uma sequência de passos decrescentes (ex.: 0.05 → 0.02 → 0.01), refinando a solução à medida que vai “apertando” o passo. Além disso, ele garante a restrição do modelo mantendo **λ1 e λ2 sempre positivos** (clamp em `> 0`). É rápido e bom para refinar uma solução já razoável, mas pode ficar preso em mínimos locais.
+
+---
+
+### ii. Hybrid Search
+
+O **Hybrid Search** combina duas ideias: exploração global + refinamento local. Primeiro, ele roda um **Algoritmo Genético (GA)** com uma população inicial composta por `initial_params` e vários candidatos **aleatórios em limites amplos** (ou seja, ele tenta “varrer” regiões diferentes do espaço de parâmetros). A cada geração, ele avalia a função objetivo, seleciona os melhores indivíduos (metade superior), faz recombinação (o “filho” herda cada parâmetro de um dos pais) e aplica **mutação** com certa probabilidade (pequenas perturbações nos betas e lambdas), sempre forçando λ1 e λ2 a permanecerem positivos.
+
+Depois que o GA termina, entra a parte “hybrid”: ele pega o melhor candidato encontrado e aplica um **Local Search** em cima dele para “polir” a solução. Em geral, esse método é mais demorado do que o Local Search puro, mas tende a ser mais robusto para escapar de mínimos locais, já que começa com uma busca mais ampla antes de refinar.
+
+---
+
+### iii. Hybrid Search From Current Result
+
+O **Hybrid Search From Current Result** é quase o mesmo pipeline do Hybrid Search (GA + Local Search no final), mas muda um detalhe crucial: **a população inicial não é majoritariamente aleatória**. Em vez de começar “do nada”, ele cria uma população “perto” do resultado atual (`initial_params`) aplicando **pequenas perturbações (jitter)**: nos betas, o jitter é aditivo e relativo à escala; nos lambdas, é multiplicativo (e depois clamp para manter positividade). Com isso, ele explora melhor a vizinhança do ponto atual, fazendo uma busca mais “direcionada” e eficiente quando você já tem uma estimativa decente.
+
+Para não ficar preso caso a vizinhança seja ruim, ele ainda injeta uma pequena fração de candidatos totalmente aleatórios (**global injection**, ex.: 10%), o que ajuda a escapar de mínimos locais sem perder o foco no refinamento a partir do resultado atual. Em resumo: é um híbrido “mais quente” (warm start), ótimo quando você quer melhorar incrementalmente uma solução que já está próxima do ideal.
+
 
 É bem fácil expandir para colocar mais métodos: é só incluí-los no código optimizers.py e registrá-lo ao final do script.
 
