@@ -12,7 +12,6 @@ StrategyCallable = Callable[[object, ParameterTuple, ObjectiveFunc], Optional["O
 @dataclass
 class OptimizationResult:
     """Container for optimizer outputs."""
-
     best_params: ParameterTuple
     best_objective: Decimal
     iterations: int
@@ -107,6 +106,186 @@ def _local_search_strategy(
         strategy="local_search",
     )
 
+
+_DECIMAL_INF = Decimal("Infinity")
+
+
+def _random_candidate_global(rng: random.Random) -> ParameterTuple:
+    """Generate a random candidate within broad bounds (global exploration)."""
+    b1 = rng.uniform(0.0, 20.0)
+    b2 = rng.uniform(-20.0, 20.0)
+    b3 = rng.uniform(-20.0, 20.0)
+    b4 = rng.uniform(-20.0, 20.0)
+    l1 = rng.uniform(0.1, 5.0)
+    l2 = rng.uniform(0.1, 5.0)
+    return (b1, b2, b3, b4, l1, l2)
+
+
+def _init_population_from_scratch(
+    pop_size: int, initial_params: ParameterTuple, rng: random.Random
+) -> List[ParameterTuple]:
+    """Population = [initial_params] + (pop_size-1) global random candidates."""
+    population: List[ParameterTuple] = [initial_params]
+    for _ in range(pop_size - 1):
+        population.append(_random_candidate_global(rng))
+    return population
+
+
+def _init_population_from_current_result(
+    pop_size: int,
+    initial_params: ParameterTuple,
+    rng: random.Random,
+    beta_jitter_levels: Sequence[float] = (0.02, 0.05, 0.10, 0.20, 0.40),
+    lambda_jitter_levels: Sequence[float] = (0.05, 0.10, 0.20, 0.40),
+    global_injection_rate: float = 0.10,
+) -> List[ParameterTuple]:
+    """
+    Population = [initial_params] + mostly local perturbations around it.
+
+    - Betas get additive relative jitter: b += u(-lvl, +lvl) * scale
+    - Lambdas get multiplicative jitter: l *= (1 + u(-lvl, +lvl)), clamped > 0
+    - A small fraction is injected globally to help escape local minima.
+    """
+    population: List[ParameterTuple] = [initial_params]
+
+    for _ in range(pop_size - 1):
+        # small global injection to avoid getting stuck, but not "mostly from scratch"
+        if rng.random() < global_injection_rate:
+            population.append(_random_candidate_global(rng))
+            continue
+
+        b1, b2, b3, b4, l1, l2 = initial_params
+
+        # Betas: additive jitter
+        betas = []
+        for base in (b1, b2, b3, b4):
+            lvl = rng.choice(tuple(beta_jitter_levels))
+            scale = max(abs(base), 1.0)
+            betas.append(base + rng.uniform(-lvl, lvl) * scale)
+
+        # Lambdas: multiplicative jitter, enforce positivity
+        lambdas = []
+        for base in (l1, l2):
+            base_pos = max(float(base), 1e-6)
+            lvl = rng.choice(tuple(lambda_jitter_levels))
+            val = base_pos * (1.0 + rng.uniform(-lvl, lvl))
+            lambdas.append(max(val, 1e-6))
+
+        population.append((betas[0], betas[1], betas[2], betas[3], lambdas[0], lambdas[1]))
+
+    return population
+
+
+def _run_ga_then_local_search(
+    current_date: object,
+    initial_params: ParameterTuple,
+    objective_func: ObjectiveFunc,
+    *,
+    pop_size: int,
+    generations: int,
+    mutation_rate: float,
+    strategy_label: str,
+    population_initializer: Callable[[int, ParameterTuple, random.Random], List[ParameterTuple]],
+) -> Optional[OptimizationResult]:
+    """
+    Shared GA loop + local refinement for hybrid strategies.
+    Only the population initialization differs between strategies.
+    """
+    rng = random.Random()
+
+    # Early fail if we can't evaluate at the starting point
+    initial_obj = _evaluate_objective(objective_func, current_date, initial_params)
+    if initial_obj is None:
+        return None
+
+    best_obj = initial_obj
+    best_params = list(initial_params)
+    iterations = 0
+
+    # Initialize population
+    population = population_initializer(pop_size, initial_params, rng)
+    if not population or population[0] != initial_params:
+        # ensure initial_params is present and first (elitism starts from it nicely)
+        population = [initial_params] + [p for p in population if p != initial_params]
+        population = population[:pop_size]
+
+    # Evaluate initial population fitness (reuse initial_obj for initial_params)
+    fitness: List[Tuple[ParameterTuple, Decimal]] = [(initial_params, initial_obj)]
+    iterations += 1
+
+    for params in population[1:]:
+        obj = _evaluate_objective(objective_func, current_date, params)
+        iterations += 1
+        if obj is None:
+            fitness.append((params, _DECIMAL_INF))
+        else:
+            fitness.append((params, obj))
+            if obj < best_obj:
+                best_obj = obj
+                best_params = list(params)
+
+    # Evolve
+    for _ in range(generations):
+        fitness.sort(key=lambda x: x[1])
+        parents = fitness[: max(1, len(fitness) // 2)]
+
+        elite_params, elite_obj = parents[0]  # keep best without re-evaluating
+
+        new_population: List[ParameterTuple] = [elite_params]
+        while len(new_population) < pop_size:
+            p1 = rng.choice(parents)[0]
+            p2 = rng.choice(parents)[0]
+
+            child: List[float] = []
+            for idx in range(6):
+                val = p1[idx] if rng.random() < 0.5 else p2[idx]
+
+                # Mutation: small perturbation
+                if rng.random() < mutation_rate:
+                    if idx < 4:
+                        base = abs(val) if abs(val) > 1e-6 else 1.0
+                        val += rng.uniform(-0.02, 0.02) * base
+                    else:
+                        base = abs(val) if abs(val) > 1e-6 else 1e-6
+                        val += rng.uniform(-0.10, 0.10) * base
+
+                child.append(float(val))
+
+            # Enforce λ1, λ2 > 0
+            child[4] = max(child[4], 1e-6)
+            child[5] = max(child[5], 1e-6)
+            new_population.append(tuple(child))  # type: ignore[arg-type]
+
+        # Evaluate new population (reuse elite objective)
+        new_fitness: List[Tuple[ParameterTuple, Decimal]] = [(elite_params, elite_obj)]
+        for params in new_population[1:]:
+            obj = _evaluate_objective(objective_func, current_date, params)
+            iterations += 1
+            if obj is None:
+                new_fitness.append((params, _DECIMAL_INF))
+            else:
+                new_fitness.append((params, obj))
+                if obj < best_obj:
+                    best_obj = obj
+                    best_params = list(params)
+
+        fitness = new_fitness
+
+    # Refine with local search
+    local_result = _local_search_strategy(current_date, tuple(best_params), objective_func)
+    if local_result is not None:
+        best_params = list(local_result.best_params)
+        best_obj = local_result.best_objective
+        iterations += local_result.iterations
+
+    return OptimizationResult(
+        best_params=tuple(best_params),  # type: ignore[arg-type]
+        best_objective=best_obj,
+        iterations=iterations,
+        strategy=strategy_label,
+    )
+
+
 def _hybrid_strategy(
     current_date: object,
     initial_params: ParameterTuple,
@@ -116,103 +295,43 @@ def _hybrid_strategy(
     mutation_rate: float = 0.1,
 ) -> Optional[OptimizationResult]:
     """
-    Hybrid genetic algorithm followed by local search.
-
-    Uses a genetic algorithm (global stochastic search) to avoid local minima:contentReference[oaicite:3]{index=3}.
-    This yields more stable and accurate fits:contentReference[oaicite:4]{index=4}. The best result from the GA 
-    is then refined with a traditional local search for higher precision:contentReference[oaicite:5]{index=5}.
+    Hybrid genetic algorithm (global init) followed by local search.
     """
-    # Initial evaluation of provided starting params
-    best_obj = _evaluate_objective(objective_func, current_date, initial_params)
-    if best_obj is None:
-        return None
-    best_params = list(initial_params)
-    iterations = 0
+    return _run_ga_then_local_search(
+        current_date,
+        initial_params,
+        objective_func,
+        pop_size=pop_size,
+        generations=generations,
+        mutation_rate=mutation_rate,
+        strategy_label="hybrid_search",
+        population_initializer=_init_population_from_scratch,
+    )
 
-    # Initialize population (include initial_params + random candidates)
-    population: List[ParameterTuple] = [initial_params]
-    for _ in range(pop_size - 1):
-        # Generate a random candidate within reasonable bounds
-        β1 = random.uniform(0.0, 20.0)       # β1 (level) ~ [0%, 20%] 
-        β2 = random.uniform(-20.0, 20.0)     # β2 (slope) ~ [-20%, 20%]
-        β3 = random.uniform(-20.0, 20.0)     # β3 (curvature) ~ [-20%, 20%]
-        β4 = random.uniform(-20.0, 20.0)     # β4 (curvature) ~ [-20%, 20%]
-        λ1 = random.uniform(0.1, 5.0)        # λ1 > 0 (positive decay factor)
-        λ2 = random.uniform(0.1, 5.0)        # λ2 > 0 (positive decay factor)
-        population.append((β1, β2, β3, β4, λ1, λ2))
 
-    # Evaluate initial population fitness
-    fitness: List[Tuple[ParameterTuple, Decimal]] = []
-    for params in population:
-        obj = _evaluate_objective(objective_func, current_date, params)
-        iterations += 1
-        if obj is None:
-            # Invalid candidate, assign a very high objective (penalize)
-            fitness.append((params, Decimal('Infinity')))
-        else:
-            fitness.append((params, obj))
-            if obj < best_obj:
-                best_obj = obj
-                best_params = list(params)
+def _hybrid_strategy_from_current_result(
+    current_date: object,
+    initial_params: ParameterTuple,
+    objective_func: ObjectiveFunc = calculate_objective_function,
+    pop_size: int = 20,
+    generations: int = 5,
+    mutation_rate: float = 0.1,
+) -> Optional[OptimizationResult]:
+    """
+    Hybrid genetic algorithm (local init around initial_params) followed by local search.
 
-    # Evolve population over multiple generations
-    for _ in range(generations):
-        # Select the top half of individuals (lowest objective) as parents
-        fitness.sort(key=lambda x: x[1])
-        parents = fitness[: max(1, len(fitness)//2)]
-
-        # Create new population, keeping the best individual (elitism)
-        new_population: List[ParameterTuple] = [parents[0][0]]
-        # Fill the rest of the population via crossover and mutation
-        while len(new_population) < pop_size:
-            # Randomly choose two parents
-            p1 = random.choice(parents)[0]
-            p2 = random.choice(parents)[0]
-            # Crossover: mix parameters from p1 and p2
-            child_params: List[float] = []
-            for idx in range(6):
-                val = p1[idx] if random.random() < 0.5 else p2[idx]
-                # Mutation: small random perturbation
-                if random.random() < mutation_rate:
-                    # For β parameters, add a small relative noise
-                    if idx < 4:
-                        base = abs(val) if abs(val) > 1e-6 else 1.0
-                        val += random.uniform(-0.02, 0.02) * base
-                    else:
-                        # For λ parameters, perturb and ensure positivity
-                        val += random.uniform(-0.1, 0.1) * val
-                child_params.append(val)
-            # Enforce λ1, λ2 > 0
-            child_params[4] = max(child_params[4], 1e-6)
-            child_params[5] = max(child_params[5], 1e-6)
-            new_population.append(tuple(child_params))
-
-        # Evaluate new population
-        fitness = []
-        for params in new_population:
-            obj = _evaluate_objective(objective_func, current_date, params)
-            iterations += 1
-            if obj is None:
-                fitness.append((params, Decimal('Infinity')))
-            else:
-                fitness.append((params, obj))
-                if obj < best_obj:
-                    best_obj = obj
-                    best_params = list(params)
-        # Continue to next generation with the new population
-
-    # After GA loop, refine best_params with local coordinate search
-    local_result = _local_search_strategy(current_date, tuple(best_params), objective_func)
-    if local_result is not None:
-        best_params = list(local_result.best_params)
-        best_obj = local_result.best_objective
-        iterations += local_result.iterations
-
-    return OptimizationResult(
-        best_params=tuple(best_params),
-        best_objective=best_obj,
-        iterations=iterations,
-        strategy="hybrid_search",
+    The initial population is mostly random variations around initial_params
+    (plus a small global injection), instead of being mostly "from scratch".
+    """
+    return _run_ga_then_local_search(
+        current_date,
+        initial_params,
+        objective_func,
+        pop_size=pop_size,
+        generations=generations,
+        mutation_rate=mutation_rate,
+        strategy_label="hybrid_search_from_current_result",
+        population_initializer=lambda ps, ip, rng: _init_population_from_current_result(ps, ip, rng),
     )
 
 
@@ -235,6 +354,7 @@ def optimize_parameters(
     return strategy(current_date, initial_params, objective_func)
 
 
-# Register default strategy
+# Register default strategies
 register_strategy("local_search", _local_search_strategy)
 register_strategy("hybrid_search", _hybrid_strategy)
+register_strategy("hybrid_search_from_current_result", _hybrid_strategy_from_current_result)
