@@ -538,6 +538,41 @@
         if (modal) modal.classList.add('show');
     }
 
+    async function fillWithPreviousBest() {
+        const form = document.getElementById('attemptForm');
+        if (!currentDate || !form) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/svensson/api/attempts/previous-best/?date=${currentDate}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.error || 'Não foi possível carregar parâmetros do dia útil anterior.');
+                return;
+            }
+
+            if (!data.parameters) {
+                alert('Parâmetros não disponíveis para preenchimento.');
+                return;
+            }
+
+            form.beta0_initial.value = data.parameters.beta0;
+            form.beta1_initial.value = data.parameters.beta1;
+            form.beta2_initial.value = data.parameters.beta2;
+            form.beta3_initial.value = data.parameters.beta3;
+            form.lambda1_initial.value = data.parameters.lambda1;
+            form.lambda2_initial.value = data.parameters.lambda2;
+
+            const paramsLabel = data.params_type === 'final' ? 'finais' : 'iniciais';
+            alert(`Parâmetros ${paramsLabel} de ${data.previous_business_day} carregados com sucesso.`);
+        } catch (error) {
+            console.error('Error loading previous business day parameters:', error);
+            alert('Erro ao buscar parâmetros do dia útil anterior.');
+        }
+    }
+
     async function editAttempt(attemptId) {
         editingAttemptId = attemptId;
 
@@ -711,6 +746,7 @@
     window.resetZoom = resetZoom;
     window.selectAttempt = selectAttempt;
     window.openCreateModal = openCreateModal;
+    window.fillWithPreviousBest = fillWithPreviousBest;
     window.editAttempt = editAttempt;
     window.deleteAttempt = deleteAttempt;
     window.improveSelectedAttempt = improveSelectedAttempt;

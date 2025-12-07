@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 import json
 import math
@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from rates.models import B3Rate
-from .models import LinearAttempt
+from .models import Feriados, LinearAttempt
 from .optimizers import OptimizationResult, optimize_parameters, available_strategies
 from .utils import calculate_objective_function, calculate_calendar_days, calculate_business_days
 
@@ -95,6 +95,33 @@ def _serialize_attempt(attempt: LinearAttempt) -> dict:
         'observation': attempt.observation,
         'created_at': attempt.created_at.isoformat(),
     }
+
+
+def _get_previous_business_day(base_date: date, max_lookback_days: int = 365) -> Optional[date]:
+    """
+    Return the previous business day before base_date, skipping weekends and holidays.
+
+    Limits the lookup window to avoid infinite loops when the calendar has no data.
+    """
+    if max_lookback_days <= 0:
+        return None
+
+    holiday_window_start = base_date - timedelta(days=max_lookback_days)
+    holidays = set(
+        Feriados.objects.filter(
+            date__lt=base_date,
+            date__gte=holiday_window_start,
+        ).values_list('date', flat=True)
+    )
+
+    current = base_date - timedelta(days=1)
+    for _ in range(max_lookback_days):
+        is_weekend = current.weekday() in (5, 6)
+        is_holiday = current in holidays
+        if not is_weekend and not is_holiday:
+            return current
+        current -= timedelta(days=1)
+    return None
 
 
 def list_attempts(request):
@@ -271,6 +298,112 @@ def improve_attempt(request, attempt_id):
 
     status_code = 200 if improved else 202
     return JsonResponse(response_payload, status=status_code)
+
+
+@require_http_methods(["GET"])
+def best_previous_attempt(request):
+    """
+    Return the parameters from the previous business day with the smallest objective function.
+
+    The chosen parameters come from the same stage (initial or final) that yielded the best
+    objective function for that attempt.
+    """
+    date_str = request.GET.get('date')
+    if not date_str:
+        return JsonResponse({'error': 'Date parameter is required'}, status=400)
+
+    try:
+        base_date = date.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid date format'}, status=400)
+
+    previous_business_day = _get_previous_business_day(base_date)
+    if previous_business_day is None:
+        return JsonResponse({'error': 'No previous business day found'}, status=404)
+
+    attempts = LinearAttempt.objects.filter(date=previous_business_day)
+    if not attempts.exists():
+        return JsonResponse(
+            {
+                'error': 'No attempts found for the previous business day',
+                'previous_business_day': previous_business_day.isoformat(),
+            },
+            status=404,
+        )
+
+    best_attempt_payload = None
+    for attempt in attempts:
+        candidates = []
+        if attempt.objective_function_initial is not None:
+            candidates.append(
+                (
+                    'initial',
+                    attempt.objective_function_initial,
+                    (
+                        float(attempt.beta0_initial),
+                        float(attempt.beta1_initial),
+                        float(attempt.beta2_initial),
+                        float(attempt.beta3_initial),
+                        float(attempt.lambda1_initial),
+                        float(attempt.lambda2_initial),
+                    ),
+                )
+            )
+        if attempt.objective_function_final is not None:
+            candidates.append(
+                (
+                    'final',
+                    attempt.objective_function_final,
+                    (
+                        float(attempt.beta0_final),
+                        float(attempt.beta1_final),
+                        float(attempt.beta2_final),
+                        float(attempt.beta3_final),
+                        float(attempt.lambda1_final),
+                        float(attempt.lambda2_final),
+                    ),
+                )
+            )
+
+        if not candidates:
+            continue
+
+        params_type, obj_value, params = min(candidates, key=lambda item: item[1])
+
+        if best_attempt_payload is None or obj_value < best_attempt_payload['objective_function']:
+            best_attempt_payload = {
+                'attempt_id': attempt.id,
+                'params_type': params_type,
+                'objective_function': obj_value,
+                'parameters': params,
+            }
+
+    if best_attempt_payload is None:
+        return JsonResponse(
+            {
+                'error': 'No attempts with objective function found for the previous business day',
+                'previous_business_day': previous_business_day.isoformat(),
+            },
+            status=404,
+        )
+
+    beta0, beta1, beta2, beta3, lambda1, lambda2 = best_attempt_payload['parameters']
+    return JsonResponse(
+        {
+            'attempt_id': best_attempt_payload['attempt_id'],
+            'previous_business_day': previous_business_day.isoformat(),
+            'params_type': best_attempt_payload['params_type'],
+            'objective_function': float(best_attempt_payload['objective_function']),
+            'parameters': {
+                'beta0': beta0,
+                'beta1': beta1,
+                'beta2': beta2,
+                'beta3': beta3,
+                'lambda1': lambda1,
+                'lambda2': lambda2,
+            },
+        }
+    )
 
 
 @require_http_methods(["GET"])
