@@ -1,0 +1,19 @@
+<div class="card dates-sidebar">
+    <h2>Datas Disponíveis</h2>
+    <div class="dates-list">
+        {% if available_dates %}
+            {% for date_obj in available_dates %}
+            <a href="?date={{ date_obj.date|date:'Y-m-d' }}" style="text-decoration: none; color: inherit;">
+                <div class="date-item {% if selected_date == date_obj.date %}active{% endif %}">
+                    <div class="date-text">{{ date_obj.date|date:'d/m/Y' }}</div>
+                    <div class="date-info">{{ date_obj.date|date:'l' }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <div class="no-data">
+                Nenhuma data disponível. Importe dados primeiro na página de Taxas B3.
+            </div>
+        {% endif %}
+    </div>
+</div>

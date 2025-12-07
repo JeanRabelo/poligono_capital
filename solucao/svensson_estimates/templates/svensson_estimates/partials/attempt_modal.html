@@ -1,0 +1,48 @@
+<div class="modal" id="attemptModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Nova Tentativa Linear</h3>
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="attemptForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>β0 (Inicial)</label>
+                    <input type="number" step="0.000000000000001" name="beta0_initial" required>
+                </div>
+                <div class="form-group">
+                    <label>β1 (Inicial)</label>
+                    <input type="number" step="0.000000000000001" name="beta1_initial" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>β2 (Inicial)</label>
+                    <input type="number" step="0.000000000000001" name="beta2_initial" required>
+                </div>
+                <div class="form-group">
+                    <label>β3 (Inicial)</label>
+                    <input type="number" step="0.000000000000001" name="beta3_initial" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>λ1 (Inicial)</label>
+                    <input type="number" step="0.000000000000001" name="lambda1_initial" required>
+                </div>
+                <div class="form-group">
+                    <label>λ2 (Inicial)</label>
+                    <input type="number" step="0.000000000000001" name="lambda2_initial" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Observação</label>
+                <textarea name="observation" placeholder="Notas sobre esta tentativa..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn btn-success">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>

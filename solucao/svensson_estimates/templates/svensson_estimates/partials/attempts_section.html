@@ -1,0 +1,35 @@
+<div class="crud-section">
+    <div class="crud-header">
+        <h3>📝 Tentativas Lineares</h3>
+        <div class="crud-actions">
+            {% if available_strategies %}
+            <div 
+                id="improveDropdown" 
+                class="dropdown"
+                style="display: none; position: relative; margin-right: 8px;">
+                <button 
+                    id="improveButton" 
+                    class="btn btn-success dropdown-toggle" 
+                    type="button"
+                    onclick="toggleImproveDropdown()">
+                    🚀 Melhorar estimativa
+                </button>
+                <div 
+                    id="improveDropdownMenu" 
+                    class="dropdown-menu" 
+                    style="display: none; position: absolute; top: 100%; left: 0; min-width: 200px; background: #fff; border: 1px solid #ccc; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 1000; padding: 4px 0;">
+                    {% for strategy in available_strategies %}
+                    <button class="dropdown-item" type="button" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none;" onclick="selectImproveStrategy('{{ strategy.value }}')">
+                        {{ strategy.label }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <button class="btn btn-primary" onclick="openCreateModal()">➕ Nova Tentativa</button>
+        </div>
+    </div>
+    <div class="attempts-list" id="attemptsList">
+        <div class="no-attempts">Carregando...</div>
+    </div>
+</div>

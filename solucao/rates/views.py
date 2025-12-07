@@ -184,7 +184,8 @@ def homepage(request):
         'rates': None,
         'selected_date': None,
         'error': None,
-        'today': date.today()
+        'today': date.today(),
+        'rates_json': None,
     }
     
     if request.method == 'POST':
@@ -196,12 +197,20 @@ def homepage(request):
             context['selected_date'] = selected_date
             
             # Check if rates exist in database
-            existing_rates = B3Rate.objects.filter(date=selected_date)
+            existing_rates = B3Rate.objects.filter(date=selected_date).order_by('dias_corridos')
             
             if existing_rates.exists():
                 # Rates found in database
                 context['rates'] = existing_rates
                 context['message'] = 'Taxas encontradas no banco de dados.'
+                context['rates_json'] = [
+                    {
+                        'dias_corridos': rate.dias_corridos,
+                        'di_pre_252': float(rate.di_pre_252),
+                        'di_pre_360': float(rate.di_pre_360),
+                    }
+                    for rate in existing_rates
+                ]
             else:
                 # Fetch from B3 website
                 fetched_rates = fetch_b3_rates(selected_date)
@@ -221,7 +230,15 @@ def homepage(request):
                     B3Rate.objects.bulk_create(rate_objects, ignore_conflicts=True)
                     
                     # Retrieve from database to display
-                    context['rates'] = B3Rate.objects.filter(date=selected_date)
+                    context['rates'] = B3Rate.objects.filter(date=selected_date).order_by('dias_corridos')
+                    context['rates_json'] = [
+                        {
+                            'dias_corridos': rate.dias_corridos,
+                            'di_pre_252': float(rate.di_pre_252),
+                            'di_pre_360': float(rate.di_pre_360),
+                        }
+                        for rate in context['rates']
+                    ]
                     context['message'] = f'Taxas DI x PRÉ obtidas da B3 e salvas no banco de dados. {len(fetched_rates)} pontos da curva encontrados.'
                 else:
                     context['error'] = 'Nenhuma taxa encontrada para esta data no site da B3.'

@@ -1,0 +1,24 @@
+<div id="table-tab" class="tab-content active">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Dias Corridos</th>
+                    <th>DI x PRÉ 252 (%)</th>
+                    <th>DI x PRÉ 360 (%)</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rate in rates %}
+                <tr>
+                    <td>{{ rate.dias_corridos }}</td>
+                    <td>{{ rate.di_pre_252 }}</td>
+                    <td>{{ rate.di_pre_360 }}</td>
+                    <td>{{ rate.date|date:"d/m/Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

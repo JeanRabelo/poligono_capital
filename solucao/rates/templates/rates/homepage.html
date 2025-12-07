@@ -1,356 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Taxas Referenciais B3</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .nav-links {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            margin: 0 10px;
-            transition: background 0.3s;
-            display: inline-block;
-        }
-        
-        .nav-links a:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            padding: 30px;
-            margin-bottom: 30px;
-        }
-        
-        .form-group {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            font-weight: 600;
-            color: #333;
-            font-size: 1.1rem;
-        }
-        
-        .form-group input[type="date"] {
-            flex: 1;
-            min-width: 200px;
-            padding: 12px 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-        
-        .form-group input[type="date"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-        
-        .message {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-        
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        table thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        table th {
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
-        }
-        
-        table tbody tr {
-            border-bottom: 1px solid #eee;
-            transition: background-color 0.2s;
-        }
-        
-        table tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        table td {
-            padding: 15px;
-            color: #333;
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-            font-size: 1.1rem;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .tabs-container {
-            margin-top: 30px;
-        }
-        
-        .tabs {
-            display: flex;
-            gap: 10px;
-            border-bottom: 2px solid #e0e0e0;
-            margin-bottom: 25px;
-        }
-        
-        .tab {
-            padding: 12px 25px;
-            background: transparent;
-            border: none;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #666;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.3s ease;
-            border-radius: 8px 8px 0 0;
-        }
-        
-        .tab:hover {
-            color: #667eea;
-            background: #f8f9fa;
-        }
-        
-        .tab.active {
-            color: #667eea;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-        }
-        
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease-in;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 450px;
-            padding: 20px;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-            border-radius: 12px;
-        }
-        
-        .chart-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 10px 15px;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 8px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .chart-info {
-            font-size: 0.9rem;
-            color: #666;
-            font-style: italic;
-        }
-        
-        .btn-reset-zoom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 8px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .btn-reset-zoom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-reset-zoom:active {
-            transform: translateY(0);
-        }
-        
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .form-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .form-group input[type="date"],
-            .btn {
-                width: 100%;
-            }
-            
-            table {
-                font-size: 0.9rem;
-            }
-            
-            table th,
-            table td {
-                padding: 10px;
-            }
-            
-            .tabs {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .tab {
-                width: 100%;
-            }
-            
-            .chart-container {
-                height: 350px;
-                padding: 10px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'rates/css/homepage.css' %}">
 </head>
 <body>
     <div class="container">
@@ -358,11 +13,11 @@
             <h1>📊 Taxas DI x PRÉ - B3</h1>
             <p>Consulte a curva DI x PRÉ (252 e 360) da BM&FBOVESPA por data</p>
         </div>
-        
+
         <div class="nav-links">
             <a href="{% url 'svensson_estimates:homepage' %}">📈 Estimativas Svensson →</a>
         </div>
-        
+
         <div class="card">
             <form method="post">
                 {% csrf_token %}
@@ -379,19 +34,19 @@
                     <button type="submit" class="btn">🔍 Buscar curva DI x PRÉ</button>
                 </div>
             </form>
-            
+
             {% if message %}
             <div class="message success">
                 {{ message }}
             </div>
             {% endif %}
-            
+
             {% if error %}
             <div class="message error">
                 ⚠️ {{ error }}
             </div>
             {% endif %}
-            
+
             {% if rates %}
             <div class="tabs-container">
                 <div class="tabs">
@@ -402,45 +57,9 @@
                         📈 Gráfico
                     </button>
                 </div>
-                
-                <div id="table-tab" class="tab-content active">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Dias Corridos</th>
-                                    <th>DI x PRÉ 252 (%)</th>
-                                    <th>DI x PRÉ 360 (%)</th>
-                                    <th>Data</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for rate in rates %}
-                                <tr>
-                                    <td>{{ rate.dias_corridos }}</td>
-                                    <td>{{ rate.di_pre_252 }}</td>
-                                    <td>{{ rate.di_pre_360 }}</td>
-                                    <td>{{ rate.date|date:"d/m/Y" }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <div id="chart-tab" class="tab-content">
-                    <div class="chart-controls">
-                        <div class="chart-info">
-                            💡 Arraste para selecionar área e dar zoom | Scroll para zoom rápido | Ctrl+arraste para mover
-                        </div>
-                        <button class="btn-reset-zoom" onclick="resetZoom()">
-                            🔄 Resetar Zoom
-                        </button>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="ratesChart"></canvas>
-                    </div>
-                </div>
+
+                {% include 'rates/partials/table_tab.html' %}
+                {% include 'rates/partials/chart_tab.html' %}
             </div>
             {% else %}
                 {% if selected_date and not error %}
@@ -451,204 +70,14 @@
             {% endif %}
         </div>
     </div>
-    
+
+    {% if rates_json %}
+    {{ rates_json|json_script:"rates-data" }}
+    {% endif %}
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-    <script>
-        function switchTab(event, tabId) {
-            // Remove active class from all tabs and tab contents
-            const tabs = document.querySelectorAll('.tab');
-            const tabContents = document.querySelectorAll('.tab-content');
-            
-            tabs.forEach(tab => tab.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-            
-            // Add active class to clicked tab and corresponding content
-            event.currentTarget.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
-            
-            // Render chart when chart tab is activated
-            if (tabId === 'chart-tab' && !window.chartRendered) {
-                renderChart();
-            }
-        }
-        
-        function renderChart() {
-            {% if rates %}
-            const ctx = document.getElementById('ratesChart').getContext('2d');
-            
-            // Prepare data from Django template
-            const diasCorridos = [{% for rate in rates %}{{ rate.dias_corridos }}{% if not forloop.last %}, {% endif %}{% endfor %}];
-            const diPre252 = [{% for rate in rates %}{{ rate.di_pre_252 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
-            const diPre360 = [{% for rate in rates %}{{ rate.di_pre_360 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
-            
-            const chartConfig = {
-                type: 'line',
-                data: {
-                    labels: diasCorridos,
-                    datasets: [
-                        {
-                            label: 'DI x PRÉ 252',
-                            data: diPre252,
-                            borderColor: '#667eea',
-                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                            borderWidth: 3,
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
-                            pointBackgroundColor: '#667eea',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                            tension: 0.4,
-                            fill: true
-                        },
-                        {
-                            label: 'DI x PRÉ 360',
-                            data: diPre360,
-                            borderColor: '#764ba2',
-                            backgroundColor: 'rgba(118, 75, 162, 0.1)',
-                            borderWidth: 3,
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
-                            pointBackgroundColor: '#764ba2',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                            tension: 0.4,
-                            fill: true
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                font: {
-                                    size: 14,
-                                    weight: '600'
-                                },
-                                padding: 20,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: {
-                                size: 14,
-                                weight: 'bold'
-                            },
-                            bodyFont: {
-                                size: 13
-                            },
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                            borderWidth: 1,
-                            callbacks: {
-                                title: function(context) {
-                                    return 'Dias Corridos: ' + context[0].label;
-                                },
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
-                                }
-                            }
-                        },
-                        zoom: {
-                            zoom: {
-                                drag: {
-                                    enabled: true,
-                                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                                    borderColor: '#667eea',
-                                    borderWidth: 2
-                                },
-                                wheel: {
-                                    enabled: true,
-                                    speed: 0.1
-                                },
-                                pinch: {
-                                    enabled: true
-                                },
-                                mode: 'xy'
-                            },
-                            pan: {
-                                enabled: true,
-                                mode: 'xy',
-                                modifierKey: 'ctrl'
-                            },
-                            limits: {
-                                x: {min: 'original', max: 'original'},
-                                y: {min: 'original', max: 'original'}
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Dias Corridos',
-                                font: {
-                                    size: 14,
-                                    weight: '600'
-                                },
-                                color: '#333'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)',
-                                drawBorder: false
-                            },
-                            ticks: {
-                                font: {
-                                    size: 12
-                                },
-                                color: '#666'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Taxa de Juros (%)',
-                                font: {
-                                    size: 14,
-                                    weight: '600'
-                                },
-                                color: '#333'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)',
-                                drawBorder: false
-                            },
-                            ticks: {
-                                font: {
-                                    size: 12
-                                },
-                                color: '#666',
-                                callback: function(value) {
-                                    return value.toFixed(2) + '%';
-                                }
-                            }
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    }
-                }
-            };
-            
-            window.chartInstance = new Chart(ctx, chartConfig);
-            window.chartRendered = true;
-            {% endif %}
-        }
-        
-        function resetZoom() {
-            if (window.chartInstance) {
-                window.chartInstance.resetZoom();
-            }
-        }
-    </script>
+    <script src="{% static 'rates/js/homepage.js' %}"></script>
 </body>
 </html>
-

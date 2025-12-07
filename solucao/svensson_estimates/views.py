@@ -25,6 +25,7 @@ def homepage(request):
     
     selected_date = None
     rates_data = None
+    rates_series = []
     
     # Check if a date was selected (via GET parameter)
     date_str = request.GET.get('date')
@@ -37,6 +38,14 @@ def homepage(request):
                 rates_data = rates
                 for rate_data in rates_data:
                     rate_data.dias_uteis = calculate_business_days(selected_date, rate_data.dias_corridos)
+                rates_series = [
+                    {
+                        "dias_corridos": rate.dias_corridos,
+                        "dias_uteis": rate.dias_uteis,
+                        "di_pre_252": float(rate.di_pre_252),
+                    }
+                    for rate in rates_data
+                ]
         except (ValueError, TypeError):
             pass
     strategy_options = [
@@ -51,6 +60,7 @@ def homepage(request):
         'available_dates': available_dates,
         'selected_date': selected_date,
         'rates_data': rates_data,
+        'rates_series': rates_series,
         'available_strategies': strategy_options,
     }
     
