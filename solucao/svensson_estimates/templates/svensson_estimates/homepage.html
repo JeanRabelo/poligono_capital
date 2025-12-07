@@ -851,13 +851,33 @@
                     ? 'Curva Svensson (Parâmetros Finais)' 
                     : 'Curva Svensson (Parâmetros Iniciais)';
                 const curveColor = svenssonData.params_type === 'final' ? '#28a745' : '#ffc107';
+                const curvePoints = svenssonData.curve
+                    .map(point => ({
+                        x: isDiasUteis ? point.dias_uteis : point.dias_corridos,
+                        y: point.taxa * 100.0
+                    }))
+                    .sort((a, b) => a.x - b.x);
+                
+                const getCurveY = (xValue) => {
+                    if (!curvePoints.length) return null;
+                    if (xValue <= curvePoints[0].x) return curvePoints[0].y;
+                    if (xValue >= curvePoints[curvePoints.length - 1].x) return curvePoints[curvePoints.length - 1].y;
+                    
+                    for (let i = 1; i < curvePoints.length; i++) {
+                        const prev = curvePoints[i - 1];
+                        const curr = curvePoints[i];
+                        if (xValue === curr.x) return curr.y;
+                        if (xValue < curr.x) {
+                            const ratio = (xValue - prev.x) / (curr.x - prev.x);
+                            return prev.y + ratio * (curr.y - prev.y);
+                        }
+                    }
+                    return null;
+                };
                 
                 datasets.push({
                     label: curveLabel,
-                    data: svenssonData.curve.map(point => ({
-                        x: isDiasUteis ? point.dias_uteis : point.dias_corridos,
-                        y: point.taxa * 100.0
-                    })),
+                    data: curvePoints,
                     borderColor: curveColor,
                     backgroundColor: 'transparent',
                     borderWidth: 3,
@@ -866,6 +886,29 @@
                     tension: 0,
                     fill: false,
                     showLine: true
+                });
+                
+                const residualData = diPre252Data
+                    .map(point => {
+                        const svenssonValue = getCurveY(point.x);
+                        if (svenssonValue === null || svenssonValue === undefined) return null;
+                        return {
+                            x: point.x,
+                            y: point.y - svenssonValue
+                        };
+                    })
+                    .filter(point => point !== null);
+                
+                datasets.push({
+                    label: 'Resíduo',
+                    data: residualData,
+                    type: 'bar',
+                    yAxisID: 'y1',
+                    backgroundColor: 'rgba(255, 99, 132, 0.35)',
+                    borderColor: '#ff6384',
+                    borderWidth: 1,
+                    borderSkipped: false,
+                    parsing: false
                 });
             }
             
@@ -908,7 +951,9 @@
                                     return xLabel + ': ' + context[0].parsed.x;
                                 },
                                 label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                                    const value = context.parsed.y;
+                                    const suffix = context.dataset.yAxisID === 'y1' ? ' p.p.' : '%';
+                                    return context.dataset.label + ': ' + value.toFixed(2) + suffix;
                                 }
                             }
                         },
@@ -979,6 +1024,29 @@
                                 },
                                 callback: function(value) {
                                     return value.toFixed(2) + '%';
+                                }
+                            }
+                        },
+                        y1: {
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Resíduo (p.p.)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                padding: 10
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                },
+                                callback: function(value) {
+                                    return value.toFixed(2) + ' p.p.';
                                 }
                             }
                         }
