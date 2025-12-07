@@ -7,7 +7,7 @@ C. Explicar decisões técnicas (essa parte vai estar ao longo de "A." e "B.");
 
 
 ## A. Como executar o código
-1. Em uma à qual você tem acesso, clone o repositório com o seguinte comando:
+1. Em uma pasta à qual você tem acesso, clone o repositório com o seguinte comando:
 git clone https://github.com/JeanRabelo/poligono_capital.git
 
 2. Ao clonar esse repositório, vá, por meio da linha de comando, até a pasta "solucao". Se você ainda estiver na linha de comando anterior do git, é só usar o seguinte comando:
@@ -139,6 +139,6 @@ Foi possível encontrar uma função objetivo menor que a da ANBIMA (4.2863e-7 <
 
 Dado que é improvável que um indivíduo sozinho, com pouca experiência no assunto e o poder computacional de um notebook pessoal seja mais eficiente que a ANBIMA, é possível pensar em algumas hipóteses:
 1. Os dados que a ANBIMA usa para fazer sua curva são um pouco diferentes do que usei, pois ela pode usar os dados de mercado originais, não eventuais dados já calculados pela B3.
-2. Como as maiores diferenças são nos pontos de mais longo prazo, pode ser que a ANBIMA não considere esses dados na sua otimização (e isso faz sentido, dado que o gráfico que a anbima "para" muito antes do meu, conforme exemplo do site da ANBIMA abaixo).
+2. Como as maiores diferenças são nos pontos de mais longo prazo, pode ser que a ANBIMA não considere esses dados na sua otimização (e isso faz sentido, dado que o gráfico que a anbima divulga "para" muito antes do meu, conforme exemplo do site da ANBIMA abaixo).
 
 [assets/Validação - resultado da ANBIMA para dia 04-12-2025.png]
